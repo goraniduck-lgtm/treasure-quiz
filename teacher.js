@@ -26,24 +26,59 @@
       const r = await B.get("rooms/" + saved.code).catch(() => null);
       if (r && r.quiz) resume = `<div class="banner">진행 중인 방 <b>${esc(saved.code)}</b> (${esc(r.title || r.quiz)})이 있어요. <button class="go ghost" id="resume" style="margin-left:8px">이어서 진행</button></div>`;
     }
-    const items = list.map((it, i) => `<label><input type="radio" name="qz" value="${esc(it.file)}" ${i === 0 ? "checked" : ""}><span><span class="qt">${esc(it.title)}</span><br><span class="qs">${esc(it.subtitle || "")}${it.count ? ` · ${it.count}문제` : ""}</span></span></label>`).join("");
+    const items = list.map((it, i) => `<label><input type="checkbox" name="qz" value="${esc(it.file)}" data-n="${it.count || 0}" ${i === 0 ? "checked" : ""}><span><span class="qt">${esc(it.title)}</span><br><span class="qs">${esc(it.subtitle || "")}${it.count ? ` · ${it.count}문제` : ""}</span></span></label>`).join("");
+    const seg = (name, opts, def) => `<div class="seg">${opts.map(([v, t]) => `<label><input type="radio" name="${name}" value="${v}" ${v === def ? "checked" : ""}>${t}</label>`).join("")}</div>`;
     app.innerHTML = `<div class="t-wrap">${banner()}
       <div class="setup card">
-        <div class="hero">${L.CHEST}<h1>퀴즈 방 만들기</h1><p>오늘 할 퀴즈를 고르고 방을 열어요. 학생은 방 코드로 들어와요.</p></div>
+        <div class="hero">${L.CHEST}<h1>퀴즈 방 만들기</h1><p>진행 방식과 문제(차시)를 고르고 방을 열어요. 학생은 방 코드로 들어와요.</p></div>
         ${resume}
-        <div class="qpick">${items || `<p class="err-text">quizzes/index.json에 퀴즈가 없어요.</p>`}</div>
+        <div class="opts">
+          <fieldset><legend>진행 방식</legend>${seg("mode", [["teacher", "① 선생님이 한 문제씩 넘기기"], ["self", "② 학생 스스로 풀기 (제한 시간)"]], "teacher")}</fieldset>
+          <fieldset><legend>문제 (여러 개 고르면 합쳐져요)</legend><div class="qpick">${items || `<p class="err-text">quizzes/index.json에 퀴즈가 없어요.</p>`}</div>
+            <p class="small" id="picked" style="text-align:left"></p></fieldset>
+          <fieldset><legend>문항 수</legend>${seg("cnt", [["all", "전부"], ["5", "5개"], ["10", "10개"], ["15", "15개"], ["20", "20개"]], "all")}
+            <p class="small" style="text-align:left">개수를 고르면 고른 문제 중에서 무작위로 뽑아요.</p></fieldset>
+          <div id="selfopts" hidden class="opts">
+            <fieldset><legend>제한 시간</legend>${seg("time", [["180", "3분"], ["300", "5분"], ["420", "7분"], ["600", "10분"], ["900", "15분"]], "300")}</fieldset>
+            <fieldset><legend>맞히면 나오는 카드</legend><div class="seg">${L.EFFECT_KEYS.map(k => `<label><input type="checkbox" name="eff" value="${k}" checked>${L.EFFECTS[k].name}</label>`).join("")}</div>
+              <p class="small" style="text-align:left">점수 추가 10~30점 · 감점 10~20점 · 일부 가져오기 30% · 전부 가져오기 · 점수 바꾸기</p></fieldset>
+          </div>
+        </div>
         <button class="go" id="mk" ${list.length ? "" : "disabled"}>방 열기</button>
       </div></div>`;
     const rb = document.getElementById("resume");
     if (rb) rb.addEventListener("click", () => openRoom(saved.code));
+    const val = n => (app.querySelector(`input[name=${n}]:checked`) || {}).value;
+    const upd = () => {
+      document.getElementById("selfopts").hidden = val("mode") !== "self";
+      const ch = Array.from(app.querySelectorAll("input[name=qz]:checked"));
+      const tot = ch.reduce((a, x) => a + Number(x.dataset.n || 0), 0);
+      document.getElementById("picked").textContent = ch.length ? `고른 문제: ${ch.length}개 묶음 · 모두 ${tot}문제` : "문제를 하나 이상 골라요.";
+      document.getElementById("mk").disabled = !ch.length;
+    };
+    app.querySelectorAll("input").forEach(x => x.addEventListener("change", upd)); upd();
     document.getElementById("mk").addEventListener("click", async e => {
       e.target.disabled = true; e.target.textContent = "여는 중…";
-      const file = (app.querySelector("input[name=qz]:checked") || {}).value;
+      const files = Array.from(app.querySelectorAll("input[name=qz]:checked")).map(x => x.value);
+      const mode = val("mode"), cnt = val("cnt");
       try {
-        const quiz = await L.loadQuiz(file);
+        const Qs = await L.loadRoomQuiz({ quiz: files });
+        const total = Qs.allQuestions.length;
+        let order = Array.from({ length: total }, (_, k) => k);
+        if (cnt !== "all" && Number(cnt) < total) {
+          for (let k = total - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [order[k], order[j]] = [order[j], order[k]]; }
+          order = order.slice(0, Number(cnt)).sort((a, b) => a - b);
+        }
         let c;
-        for (let i = 0; i < 20; i++) { c = String(1000 + Math.floor(Math.random() * 9000)); if (!(await B.get("rooms/" + c + "/quiz"))) break; }
-        await B.set("rooms/" + c, { quiz: file, title: quiz.title, createdAt: B.now(), state: { phase: "lobby", q: 0 } });
+        for (let k = 0; k < 20; k++) { c = String(1000 + Math.floor(Math.random() * 9000)); if (!(await B.get("rooms/" + c + "/quiz"))) break; }
+        const title = files.length > 1 ? `${Qs.title.replace(/ 보물 찾기$/, "")} 외 ${files.length - 1}개` : Qs.title;
+        const room = { quiz: files, title, order, mode, createdAt: B.now(), state: { phase: "lobby", q: 0 } };
+        if (mode === "self") {
+          const effects = {}; L.EFFECT_KEYS.forEach(k => (effects[k] = !!app.querySelector(`input[name=eff][value=${k}]:checked`)));
+          if (!Object.values(effects).some(Boolean)) effects.add = true;
+          room.settings = { timeLimit: Number(val("time")), effects, showAnswer: Qs.set.showAnswer !== false };
+        }
+        await B.set("rooms/" + c, room);
         openRoom(c);
       } catch (err) {
         const msg = /permission/i.test(String(err && (err.code || err.message)))
@@ -59,9 +94,13 @@
     const r = await B.get("rooms/" + c);
     if (!r) { L.store.del(T_KEY); viewSetup(); return; }
     code = c; L.store.set(T_KEY, { code });
-    Q = await L.loadQuiz(r.quiz);
+    Q = await L.loadRoomQuiz(r);
     document.title = Q.title + " · 교사";
     if (unsub) unsub();
+    if (r.mode === "self") {   // 2번: 학생 스스로 진행
+      unsub = L.selfTeacher({ app, B, code, Q, banner, studentUrl, onClose: () => { unsub = null; L.store.del(T_KEY); viewSetup(); } });
+      return;
+    }
     unsub = B.on("rooms/" + code, v => { if (!v) { R = null; L.store.del(T_KEY); viewSetup(); return; } R = v; render(); });
   }
 

@@ -34,6 +34,18 @@
     Q.set = Object.assign({}, DEFAULTS, Q.settings || {});
     return Q;
   };
+  /** 방에 저장된 퀴즈(여러 차시 묶음 가능)와 문항 순서대로 불러오기 */
+  L.loadRoomQuiz = async room => {
+    const files = Array.isArray(room.quiz) ? room.quiz : [room.quiz];
+    const parts = await Promise.all(files.map(L.loadQuiz));
+    const Q = parts[0];
+    const all = [].concat(...parts.map(p => p.questions.map(q => Object.assign({ _src: p.title }, q))));
+    Q.allQuestions = all;
+    Q.questions = Array.isArray(room.order) ? room.order.map(i => all[i]).filter(Boolean) : all;
+    if (room.title) Q.title = room.title;
+    if (parts.length > 1) Q.subtitle = parts.map(p => p.title).join(" · ");
+    return Q;
+  };
   L.loadQuizList = async () => {
     const res = await fetch("quizzes/index.json?v=" + Date.now());
     if (!res.ok) return [];
@@ -48,11 +60,16 @@
   L.isCorrect = (q, given) => {
     if (given === "" || given == null) return false;
     if (q.type === "ox") return String(given).toUpperCase() === String(q.answer).toUpperCase();
+    if (q.type === "choice" && q.multi) {
+      const a = L.answersOf(q).map(Number).sort((x, y) => x - y).join(","), g = String(given).split(",").filter(Boolean).map(Number).sort((x, y) => x - y).join(",");
+      return a === g;
+    }
     if (q.type === "choice" || q.type === "number") return L.answersOf(q).map(Number).includes(Number(given));
     return L.answersOf(q).map(L.norm).includes(L.norm(given));
   };
   L.optLabel = (q, i) => { const o = q.options[i - 1]; return (o && typeof o === "object" && o.label) || L.CIRCLED[i - 1] || String(i); };
   L.showAns = (q, v) => {
+    if (q.type === "choice" && q.multi && v == null) return L.answersOf(q).map(i => L.optLabel(q, i)).join(", ");
     if (v == null) v = L.answersOf(q)[0];
     if (q.type === "ox") return v;
     if (q.type === "choice") { const o = q.options[v - 1]; const t = typeof o === "string" ? o : (o && o.text) || ""; return L.optLabel(q, v) + (t ? " " + t : ""); }
@@ -80,7 +97,7 @@
   const optFig = o => (o.image ? L.figure(o.image) : L.figure(o.figure || o.svg));
 
   L.questionHead = (Q, q, n) =>
-    `<div class="qhead"><span class="qnum">문제 ${n}</span><span class="tag t-${q.type}">${L.TYPE_NAME[q.type] || ""}</span><span class="pts">${L.ptsOf(Q, q)}점</span></div>
+    `<div class="qhead"><span class="qnum">문제 ${n}</span><span class="tag t-${q.type}">${q.multi ? "모두 고르기" : L.TYPE_NAME[q.type] || ""}</span><span class="pts">${L.ptsOf(Q, q)}점</span></div>
      <p class="qtext">${L.fmt(q.text)}</p>${q.image ? L.figure(q.image) : L.figure(q.figure)}`;
 
   /** 답하는 칸. draft = 지금 고른 값, locked = 누를 수 없게 */
@@ -93,7 +110,8 @@
       const textual = q.options.every(o => typeof o === "string" || (!o.figure && !o.image && !o.svg));
       return `<div class="choices ${textual ? "textual" : ""}">${q.options.map((o, i) => {
         const obj = typeof o === "string" ? { text: o } : o;
-        return `<button class="opt ${d === String(i + 1) ? "sel" : ""}" data-v="${i + 1}"><span class="olabel">${L.esc(L.optLabel(q, i + 1))}</span>${optFig(obj)}${obj.text ? `<span class="otext">${L.fmt(obj.text)}</span>` : ""}</button>`;
+        const on = q.multi ? d.split(",").includes(String(i + 1)) : d === String(i + 1);
+        return `<button class="opt ${on ? "sel" : ""}" data-v="${i + 1}"><span class="olabel">${L.esc(L.optLabel(q, i + 1))}</span>${optFig(obj)}${obj.text ? `<span class="otext">${L.fmt(obj.text)}</span>` : ""}</button>`;
       }).join("")}</div>`;
     }
     if (q.type === "number") {
@@ -104,6 +122,31 @@
     }
     if (opts.preview) return `<div class="typed"><input disabled placeholder="답을 적어요">${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>`;
     return `<div class="typed"><input id="sa" autocomplete="off" autocapitalize="off" spellcheck="false" value="${L.esc(d)}" placeholder="답을 적어요">${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>${q.hint ? `<p class="hint">${L.esc(q.hint)}</p>` : ""}`;
+  };
+
+  /** 답 고르기·입력 연결. get()/set(v)로 임시 답을 읽고 쓰고, submit()은 엔터·확인 */
+  L.bindAnswer = (area, q, get, set, submit) => {
+    if (q.type === "ox" || (q.type === "choice" && !q.multi)) {
+      area.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => {
+        area.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("sel", x === b)); set(b.dataset.v);
+      }));
+    } else if (q.type === "choice") {
+      area.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => {
+        b.classList.toggle("sel");
+        set(Array.from(area.querySelectorAll("[data-v].sel")).map(x => x.dataset.v).sort((a, c) => a - c).join(","));
+      }));
+    } else if (q.type === "number") {
+      const nd = area.querySelector("#nd");
+      area.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => {
+        let v = get() || "";
+        if (b.dataset.k === "del") v = v.slice(0, -1); else if (v.length < 4) v = (v === "0" ? "" : v) + b.dataset.k;
+        nd.textContent = v === "" ? "?" : v; nd.classList.toggle("empty", v === ""); set(v);
+      }));
+    } else {
+      const sa = area.querySelector("#sa");
+      sa.addEventListener("input", () => set(sa.value.trim() === "" ? "" : sa.value));
+      sa.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing && get()) { e.preventDefault(); submit(); } });
+    }
   };
 
   // ---------- icons ----------
@@ -150,6 +193,43 @@
   };
   L.icon = k => L.ICONS[k] || L.ICONS.gem;
 
+  // ---------- 2번(자율 진행) 효과 카드 ----------
+  Object.assign(L.ICONS, {
+    bomb: SV(`<circle cx="28" cy="34" r="18" fill="#3A4560" stroke="#1D2A44" stroke-width="3"/><path d="M40 20 L46 12" stroke="#1D2A44" stroke-width="4" stroke-linecap="round"/><path d="M46 12 Q52 6 56 10" fill="none" stroke="#E0453B" stroke-width="3" stroke-linecap="round"/><circle cx="57" cy="8" r="4" fill="#F4B400"/><circle cx="21" cy="28" r="4" fill="#8A97B5"/>`),
+    magnet: SV(`<path d="M10 6 H24 V32 Q24 40 32 40 Q40 40 40 32 V6 H54 V32 Q54 54 32 54 Q10 54 10 32 Z" fill="#E0453B" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><rect x="10" y="6" width="14" height="10" fill="#C9CED8" stroke="#1D2A44" stroke-width="3"/><rect x="40" y="6" width="14" height="10" fill="#C9CED8" stroke="#1D2A44" stroke-width="3"/>`),
+    bag: SV(`<path d="M22 14 L18 4 H46 L42 14 Q60 26 58 42 Q56 54 32 54 Q8 54 6 42 Q4 26 22 14 Z" fill="#C8873A" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><path d="M22 14 H42" stroke="#1D2A44" stroke-width="3"/><text x="32" y="44" text-anchor="middle" font-size="20" font-family="Jua, sans-serif" fill="#FFE29A">ALL</text>`),
+    swap: SV(`<circle cx="32" cy="29" r="25" fill="#BBD6F2" stroke="#1D2A44" stroke-width="3"/><path d="M16 22 H44 L38 15 M48 36 H20 L26 43" fill="none" stroke="#1D2A44" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`)
+  });
+  L.EFFECTS = {
+    add:      { name: "점수 추가", weight: 45, desc: a => `+${a}점` },
+    minus:    { name: "감점", weight: 15, desc: a => `-${a}점` },
+    stealSome:{ name: "일부 가져오기", weight: 18, desc: () => "친구 점수 30% 가져오기", target: true },
+    stealAll: { name: "전부 가져오기", weight: 7, desc: () => "친구 점수 전부 가져오기", target: true },
+    swap:     { name: "점수 바꾸기", weight: 15, desc: () => "친구와 점수 바꾸기", target: true }
+  };
+  L.EFFECT_KEYS = Object.keys(L.EFFECTS);
+  L.EFFECT_ICON = { add: "coin", minus: "bomb", stealSome: "magnet", stealAll: "bag", swap: "swap" };
+  /** 효과 카드 한 장 뽑기. enabled = {add:true, ...} */
+  L.drawEffect = enabled => {
+    const keys = L.EFFECT_KEYS.filter(k => !enabled || enabled[k] !== false);
+    const pickK = pickWeighted(keys.map(k => ({ k, weight: L.EFFECTS[k].weight }))).k;
+    if (pickK === "add") { const a = pick([10, 10, 15, 15, 20, 30]); return { k: "add", amount: a, icon: a >= 30 ? "crown" : a >= 20 ? "gem" : a >= 15 ? "ruby" : "coin" }; }
+    if (pickK === "minus") return { k: "minus", amount: pick([10, 10, 20]), icon: "bomb" };
+    return { k: pickK, icon: { stealSome: "magnet", stealAll: "bag", swap: "swap" }[pickK] };
+  };
+  L.effectLabel = e => `${L.EFFECTS[e.k].name} · ${L.EFFECTS[e.k].desc(e.amount)}`;
+
+  /** 2번 모드 점수표 {학생id: 점수} = 정답 점수 합 + 효과(ledger) 합 */
+  L.selfScores = R => {
+    const sc = {};
+    Object.keys(R.students || {}).forEach(id => (sc[id] = 0));
+    Object.entries(R.log || {}).forEach(([sid, ents]) => Object.values(ents || {}).forEach(e => { if (e) sc[sid] = (sc[sid] || 0) + (e.pts || 0); }));
+    Object.values(R.ledger || {}).forEach(x => Object.entries((x && x.d) || {}).forEach(([sid, v]) => { sc[sid] = (sc[sid] || 0) + (v || 0); }));
+    return sc;
+  };
+  L.fmtTime = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
+  L.seqId = () => Date.now().toString(36).padStart(9, "0") + L.rid(4);
+
   // ---------- backend ----------
   L.makeBackend = () => {
     const cfg = window.FIREBASE_CONFIG;
@@ -161,6 +241,8 @@
     const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
     const db = app.database();
     const conn = db.ref(".info/connected");
+    let offset = 0;
+    db.ref(".info/serverTimeOffset").on("value", s => { offset = s.val() || 0; });
     return {
       kind: "firebase",
       set: (p, v) => db.ref(p).set(v),
@@ -175,7 +257,8 @@
         return () => { conn.off("value", h); r.onDisconnect().cancel(); r.set(false); };
       },
       onConnected(cb) { const h = s => cb(!!s.val()); conn.on("value", h); return () => conn.off("value", h); },
-      now: () => firebase.database.ServerValue.TIMESTAMP
+      now: () => firebase.database.ServerValue.TIMESTAMP,
+      serverNow: () => Date.now() + offset
     };
   }
 
@@ -216,7 +299,8 @@
         return () => { window.removeEventListener("pagehide", off); off(); };
       },
       onConnected(cb) { setTimeout(() => cb(true), 0); return () => {}; },
-      now: () => Date.now()
+      now: () => Date.now(),
+      serverNow: () => Date.now()
     };
     return api;
   }

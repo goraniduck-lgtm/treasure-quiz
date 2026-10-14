@@ -67,11 +67,15 @@
     const base = "rooms/" + me.code;
     room = await B.get(base).catch(() => null);
     if (!room || !room.quiz) { leave("그 방은 끝났어요. 새 방 코드를 받아요."); return; }
-    try { Q = await L.loadQuiz(room.quiz); } catch (e) { app.innerHTML = `<div class="banner err">${esc(e.message)}</div>`; return; }
+    try { Q = await L.loadRoomQuiz(room); } catch (e) { app.innerHTML = `<div class="banner err">${esc(e.message)}</div>`; return; }
     document.title = Q.title;
     // 이름이 지워졌으면 다시 등록 (선생님이 새로 연 방 등)
     await B.update(base + "/students/" + me.sid, { name: me.name });
     stopPresence = B.presence(base + "/students/" + me.sid + "/online");
+    if (room.mode === "self") {        // 2번: 학생 스스로 진행 (selfmode.js)
+      subs.push(L.selfStudent({ app, B, me, Q, base, banner, leave }));
+      return;
+    }
     subs.push(B.on(base + "/state", s => {
       if (s === null) { leave("선생님이 수업을 끝냈어요."); return; }
       state = s; render();
@@ -131,23 +135,7 @@
         <button class="go" id="check" ${d === "" ? "disabled" : ""}>정답 확인</button>
       </div>`;
     const area = document.getElementById("ans"), check = document.getElementById("check");
-    const setDraft = v => { drafts[qk] = v; check.disabled = v === ""; };
-    if (q.type === "ox" || q.type === "choice") {
-      area.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => {
-        area.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("sel", x === b)); setDraft(b.dataset.v);
-      }));
-    } else if (q.type === "number") {
-      const nd = document.getElementById("nd");
-      area.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => {
-        let v = drafts[qk] || "";
-        if (b.dataset.k === "del") v = v.slice(0, -1); else if (v.length < 4) v = (v === "0" ? "" : v) + b.dataset.k;
-        nd.textContent = v === "" ? "?" : v; nd.classList.toggle("empty", v === ""); setDraft(v);
-      }));
-    } else {
-      const sa = document.getElementById("sa");
-      sa.addEventListener("input", () => setDraft(sa.value.trim() === "" ? "" : sa.value));
-      sa.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing && !check.disabled) { e.preventDefault(); submit(); } });
-    }
+    L.bindAnswer(area, q, () => drafts[qk] || "", v => { drafts[qk] = v; check.disabled = v === ""; }, submit);
     check.addEventListener("click", submit);
   }
 

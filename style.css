@@ -1,3 +1,4 @@
+[hidden] { display: none !important; }
 /* Layout: 모눈종이 바탕 위에 한 장의 문제 카드. 태블릿 한 화면 = 한 단계 (시작 → 문제 → 보물 → 결과) */
 :root {
   --paper: #EEF5FC;
@@ -65,8 +66,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outl
 .fig svg text { fill: var(--ink); stroke: none; font-family: var(--display); font-size: 20px; text-anchor: middle; }
 
 /* answer areas */
-.ox { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.oxbtn { aspect-ratio: 16/10; max-height: 200px; width: 100%; border: 3px solid var(--ink); border-radius: 20px; background: var(--panel); box-shadow: 0 5px 0 var(--ink); display: grid; place-items: center; transition: transform .08s; }
+.ox { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.oxbtn { height: clamp(110px, 24vw, 190px); width: 100%; min-width: 0; border: 3px solid var(--ink); border-radius: 20px; background: var(--panel); box-shadow: 0 5px 0 var(--ink); display: grid; place-items: center; transition: transform .08s; }
 .oxbtn svg { width: 46%; max-width: 110px; height: auto; }
 .oxbtn.sel { background: var(--c1); transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
 .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
@@ -221,3 +222,26 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outl
 .bp svg { width: 34px; height: auto; }
 .bp b { font-family: var(--display); font-weight: normal; }
 .lastres svg { width: 26px; height: 26px; }
+
+/* 2번(자율 진행) */
+.self-timer { background: var(--ink); color: #fff; font-family: var(--display); font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.big-timer { font-size: clamp(1.6rem, 3.4vw, 2.4rem); background: var(--gold) !important; color: var(--ink); }
+.toast { position: fixed; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 20; background: var(--ink); color: #fff; font-family: var(--display); font-size: 1.3rem; padding: 12px 22px; border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: calc(100% - 32px); text-align: center; }
+.efflist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; text-align: left; width: min(100%, 460px); }
+.efflist li, .feed li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; background: #F6F9FD; border-radius: 12px; padding: 6px 10px; }
+.efflist svg, .feed svg { width: 32px; height: auto; }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tgt { display: grid; gap: 4px; justify-items: center; padding: 14px 10px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; box-shadow: 0 4px 0 var(--ink); font-family: var(--display); font-size: 1.2rem; }
+.tgt b { font-weight: normal; color: var(--gold-deep); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.tgt:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.hero > svg:not(.chest) { width: 80px; height: auto; }
+.tcard .back .lab small { font-family: var(--body); font-size: .8rem; color: var(--ink-soft); }
+.setup .opts { display: grid; gap: 12px; }
+.setup fieldset { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.setup legend { font-family: var(--display); font-size: 1.15rem; padding: 0 6px; }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg label { display: inline-flex; align-items: center; gap: 6px; border: 2px solid var(--line); border-radius: 999px; padding: 6px 14px; background: #fff; cursor: pointer; }
+.seg label:has(input:checked) { border-color: var(--ink); background: var(--c1); }
+.seg input { accent-color: var(--ink); }
+.qpick label input[type=checkbox] { width: 22px; height: 22px; }
