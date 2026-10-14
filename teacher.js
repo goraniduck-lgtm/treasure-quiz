@@ -91,7 +91,8 @@
     if (st.phase === "lobby") {
       left = `<div class="card wait">${L.CHEST}<h2>${esc(Q.title)}</h2><p>${esc(Q.subtitle || "")}</p>
         <div class="meta"><span class="chip">문제 ${n}개</span><span class="chip">정답 만점 ${L.maxBase(Q)}점</span><span class="chip">보물 1개 +${Q.set.treasureBonus}점</span></div>
-        <p>학생들이 방 코드 <b>${esc(code)}</b>로 들어오면 오른쪽에 이름이 나타나요.</p></div>`;
+        <img src="qr-student.svg" alt="학생 주소 QR 코드" style="width:min(240px,60%);height:auto">
+        <p>QR을 찍거나 학생 주소로 들어와 방 코드 <b>${esc(code)}</b>를 입력하면 오른쪽에 이름이 나타나요.</p></div>`;
       ctrl = `<button class="go" id="start" ${students.length ? "" : "disabled"}>문제 1 열기</button>`;
     } else if (st.phase === "q") {
       const q = Q.questions[st.q];
