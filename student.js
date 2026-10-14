@@ -5,6 +5,7 @@
   const app = document.getElementById("app");
   const B = L.makeBackend();
   const ME_KEY = "live-quiz-me";
+  L.netBanner(B);
 
   let me = L.store.get(ME_KEY);      // {code, sid, name}
   let Q = null, room = null;          // 퀴즈, 방 정보 {quiz,title,state}

@@ -186,6 +186,21 @@
     return api;
   }
 
+  /** 연결 상태 띠: 연결이 3초 넘게 끊겨 있을 때만 화면 맨 위에 표시 (데모 모드는 표시 안 함) */
+  L.netBanner = B => {
+    if (B.kind !== "firebase") return;
+    const bar = document.createElement("div");
+    bar.className = "banner err netbar"; bar.hidden = true;
+    bar.textContent = "인터넷 연결이 끊겼어요. 다시 연결되면 자동으로 이어져요.";
+    document.body.prepend(bar);
+    let timer = null;
+    B.onConnected(c => {
+      clearTimeout(timer);
+      if (c) bar.hidden = true;
+      else timer = setTimeout(() => { bar.hidden = false; }, 3000);
+    });
+  };
+
   /** 학생 한 명의 점수 합계 (answers 전체 + 학생 id) */
   L.scoreOf = (answers, sid) => Object.values(answers || {}).reduce((a, qa) => {
     const r = qa && qa[sid]; return a + (r ? (r.pts || 0) + (r.bonus || 0) : 0);

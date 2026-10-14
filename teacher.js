@@ -7,14 +7,14 @@
   const T_KEY = "live-quiz-teacher";
 
   let code = null, Q = null, R = null;  // 방 코드, 퀴즈, 방 전체 데이터
-  let showMarks = false, showAns = false, confirmEnd = false, unsub = null, connected = true;
+  let showMarks = false, showAns = false, confirmEnd = false, unsub = null;
   const studentUrl = () => location.href.replace(/[#?].*$/, "").replace(/teacher\.html$/, "");
 
   function banner() {
     if (B.kind === "demo") return `<div class="banner">연습(데모) 모드: 같은 컴퓨터의 다른 탭에서 학생 화면(${esc(studentUrl())})을 열어 시험해 볼 수 있어요. firebase-config.js에 설정을 넣으면 교실 태블릿끼리 연결돼요.</div>`;
-    return connected ? "" : `<div class="banner err">인터넷 연결이 끊겼어요. 다시 연결되면 자동으로 이어져요.</div>`;
+    return "";
   }
-  B.onConnected(c => { if (c !== connected) { connected = c; if (R) render(); } });
+  L.netBanner(B);
 
   // ---------- setup ----------
   async function viewSetup() {
