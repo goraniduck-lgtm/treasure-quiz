@@ -215,3 +215,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outl
 .danger { background: var(--no-bg) !important; border-color: var(--no) !important; color: var(--no); box-shadow: 0 5px 0 var(--no) !important; }
 
 .netbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; margin: 8px 16px 0; }
+.bprev { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.bp { display: grid; justify-items: center; gap: 2px; width: 64px; padding: 6px 4px; border: 2px solid var(--line); border-radius: 12px; background: #F6F9FD; font-size: .85rem; }
+.bp.has { border-color: var(--gold); background: #FFF6D9; }
+.bp svg { width: 34px; height: auto; }
+.bp b { font-family: var(--display); font-weight: normal; }
+.lastres svg { width: 26px; height: 26px; }

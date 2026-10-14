@@ -11,6 +11,7 @@
   let Q = null, room = null;          // 퀴즈, 방 정보 {quiz,title,state}
   let state = null, myAns = {};       // 진행 상태, 내 답 기록 {q0:{...}}
   let drafts = {};                    // 아직 안 낸 답
+  let boards = {}, localBoards = {};  // 선생님이 정한 보물판 (q0: [...]) / 없을 때 쓰는 내 보물판
   let subs = [], stopPresence = null, lastKey = "", joinErr = "";
 
   function banner() {
@@ -75,6 +76,7 @@
       if (s === null) { leave("선생님이 수업을 끝냈어요."); return; }
       state = s; render();
     }));
+    subs.push(B.on(base + "/boards", b => { boards = b || {}; }));
     subs.push(B.on(base + "/answers", a => {
       const mine = {};
       Object.entries(a || {}).forEach(([k, v]) => { if (v && v[me.sid]) mine[k] = v[me.sid]; });
@@ -111,7 +113,7 @@
 
   function viewAfter(r) {
     const res = r.correct
-      ? `<span class="lastres ok">정답 +${r.pts}점${r.treasure ? ` · ${L.GEM} 보물 +${r.bonus}` : ""}</span>`
+      ? `<span class="lastres ok">정답 +${r.pts}점${r.item ? ` · ${L.icon(r.item.icon)} ${esc(r.item.name)}${r.treasure ? " +" + r.bonus : ""}` : ""}</span>`
       : `<span class="lastres no">아쉬워요, 0점</span>`;
     const q = Q.questions[state.q];
     let ans = "";
@@ -155,37 +157,52 @@
     const check = document.getElementById("check"); if (check) { check.disabled = true; check.textContent = "보내는 중…"; }
     const ok = L.isCorrect(q, given);
     const rec = { given: String(given), correct: ok, pts: ok ? L.ptsOf(Q, q) : 0, bonus: 0, treasure: false, at: B.now() };
-    if (ok) rec.board = L.shuffleBoard(L.cardsOf(Q, q), L.treOf(Q, q));
     const path = "rooms/" + me.code + "/answers/" + qk + "/" + me.sid;
     const exists = await B.get(path).catch(() => null);
     if (exists) return;               // 이미 낸 답은 바꿀 수 없어요
     await B.set(path, rec);
   }
 
+  function boardFor(qi) {
+    const q = Q.questions[qi], k = "q" + qi;
+    const b = boards[k] && Array.isArray(boards[k].cards) ? boards[k].cards : null;
+    if (b) return b;
+    if (!localBoards[k]) localBoards[k] = L.makeBoard(Q, q);   // 선생님 보물판이 없을 때
+    return localBoards[k];
+  }
+
   function viewPick(r) {
-    const qi = state.q, q = Q.questions[qi], board = r.board || [];
+    const qi = state.q, q = Q.questions[qi], n = boardFor(qi).length;
+    const hidden = boardFor(qi).filter(x => x.points > 0).length;
     app.innerHTML = `${banner()}${bar()}
       <div class="card">
         <div class="fb ok"><div class="big">정답이에요! +${r.pts}점</div></div>
         <h2 class="ttitle">번호를 하나 골라요</h2>
-        <p class="tsub">보물 ${board.filter(Boolean).length}개가 숨어 있어요. 하나만 고를 수 있어요.</p>
-        <div class="board" style="--n:${board.length}">${board.map((has, i) => `
+        <p class="tsub">카드 ${n}장 중 ${hidden}장에 보물이 숨어 있어요. 하나만 고를 수 있어요.</p>
+        <div class="board" style="--n:${n}">${Array.from({ length: n }, (_, i) => `
           <button class="tcard" data-i="${i}" aria-label="${i + 1}번 카드"><span class="in">
             <span class="face front" style="background:${L.CARD_COLORS[i % L.CARD_COLORS.length]}">${i + 1}</span>
-            <span class="face back">${has ? `<span class="sparkle">${L.GEM}</span><span class="lab">보물 +${L.bonusOf(Q, q)}</span>` : `${L.ROCK}<span class="lab">꽝</span>`}</span>
+            <span class="face back"></span>
           </span></button>`).join("")}</div>
       </div>`;
     let done = false;
-    app.querySelectorAll(".tcard").forEach(b => b.addEventListener("click", async () => {
+    app.querySelectorAll(".tcard").forEach(b => b.addEventListener("click", () => {
       if (done) return; done = true;
-      const i = Number(b.dataset.i), has = !!board[i];
-      app.querySelectorAll(".tcard").forEach(x => { x.classList.add("open"); x.disabled = true; if (x !== b) x.classList.add("dim"); });
+      const board = boardFor(qi);              // 누르는 순간의 보물판 (선생님이 섞었으면 섞인 판)
+      const i = Number(b.dataset.i), item = board[i] || { icon: "rock", name: "돌멩이", points: 0 };
+      app.querySelectorAll(".tcard").forEach((x, k) => {
+        const it = board[k] || { icon: "rock", name: "돌멩이", points: 0 };
+        x.querySelector(".back").innerHTML = it.points > 0
+          ? `<span class="${x === b ? "sparkle" : ""}">${L.icon(it.icon)}</span><span class="lab">${esc(it.name)} +${it.points}</span>`
+          : `${L.icon(it.icon)}<span class="lab">꽝</span>`;
+        x.classList.add("open"); x.disabled = true; if (x !== b) x.classList.add("dim");
+      });
       b.classList.add("pick");
-      const t = app.querySelector(".ttitle");
-      t.textContent = has ? `보물을 찾았어요! +${L.bonusOf(Q, q)}점` : "이번엔 꽝! 다음 기회에";
-      // 카드 뒤집는 모습을 잠깐 보여 준 뒤 기록
+      app.querySelector(".ttitle").textContent = item.points > 0 ? `보물 발견! ${item.name} +${item.points}점` : `${item.name}… 꽝! 다음 기회에`;
       setTimeout(() => {
-        B.update("rooms/" + me.code + "/answers/q" + qi + "/" + me.sid, { card: i + 1, treasure: has, bonus: has ? L.bonusOf(Q, q) : 0 });
+        B.update("rooms/" + me.code + "/answers/q" + qi + "/" + me.sid, {
+          card: i + 1, treasure: item.points > 0, bonus: item.points, item: { icon: item.icon, name: item.name, points: item.points }
+        });
       }, 1800);
     }));
   }
@@ -195,7 +212,7 @@
       const r = myAns["q" + i];
       return `<div class="row"><span class="n">${i + 1}</span><span class="q">${esc(L.plain(q.text))}</span>
         <span class="m ${r && r.correct ? "ok" : "no"}">${r ? (r.correct ? "O" : "X") : "–"}</span>
-        <span class="p">${r ? (r.pts || 0) + (r.bonus || 0) : 0}점${r && r.treasure ? L.GEM : ""}</span></div>`;
+        <span class="p">${r ? (r.pts || 0) + (r.bonus || 0) : 0}점${r && r.treasure && r.item ? L.icon(r.item.icon) : ""}</span></div>`;
     }).join("");
     const list = Object.values(myAns);
     const right = list.filter(r => r.correct).length, gems = list.filter(r => r.treasure).length;

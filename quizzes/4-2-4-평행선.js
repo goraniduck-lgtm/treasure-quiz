@@ -8,7 +8,8 @@ const QUIZ = {
     points: 10,          // 문항 기본 배점 (문항에 points가 있으면 그 값)
     cards: 4,            // 보물 번호 카드 수
     treasures: 2,        // 카드 중 보물 개수
-    treasureBonus: 5,    // 보물 1개 점수
+    // 보물 종류를 바꾸려면 아래 줄의 // 를 지우고 고쳐요 (weight가 클수록 자주 나옴)
+    // treasureTypes: [{ icon: "coin", name: "금화", points: 3, weight: 4 }, { icon: "ruby", name: "루비", points: 5, weight: 3 }, { icon: "gem", name: "다이아몬드", points: 7, weight: 2 }, { icon: "crown", name: "왕관", points: 10, weight: 1 }],
     showAnswer: true,    // 틀렸을 때 정답 보여주기
     shuffle: false       // 문항 순서 섞기
   },

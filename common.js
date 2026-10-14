@@ -21,7 +21,7 @@
   };
 
   // ---------- quiz ----------
-  const DEFAULTS = { points: 10, cards: 4, treasures: 2, treasureBonus: 5, showAnswer: true };
+  const DEFAULTS = { points: 10, cards: 4, treasures: 2, showAnswer: true };
   L.CIRCLED = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
   L.TYPE_NAME = { ox: "OX 퀴즈", choice: "객관식", short: "단답형", number: "단답형" };
   L.CARD_COLORS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)", "var(--c6)"];
@@ -42,7 +42,6 @@
   L.ptsOf = (Q, q) => (q.points != null ? q.points : Q.set.points);
   L.cardsOf = (Q, q) => (q.cards != null ? q.cards : Q.set.cards);
   L.treOf = (Q, q) => Math.min(q.treasures != null ? q.treasures : Q.set.treasures, L.cardsOf(Q, q));
-  L.bonusOf = (Q, q) => (q.treasureBonus != null ? q.treasureBonus : Q.set.treasureBonus);
   L.answersOf = q => (Array.isArray(q.answer) ? q.answer : [q.answer]);
   L.maxBase = Q => Q.questions.reduce((a, q) => a + L.ptsOf(Q, q), 0);
 
@@ -114,6 +113,42 @@
   L.CHEST = `<svg class="chest" viewBox="0 0 120 96" aria-hidden="true"><rect x="10" y="40" width="100" height="50" rx="6" fill="#C8873A" stroke="#1D2A44" stroke-width="4"/><path d="M10 44 Q10 10 60 10 Q110 10 110 44 Z" fill="#E09A45" stroke="#1D2A44" stroke-width="4" stroke-linejoin="round"/><rect x="10" y="40" width="100" height="10" fill="#F4B400" stroke="#1D2A44" stroke-width="4"/><rect x="50" y="42" width="20" height="24" rx="4" fill="#F4B400" stroke="#1D2A44" stroke-width="4"/><circle cx="60" cy="54" r="3.5" fill="#1D2A44"/></svg>`;
   L.OICON = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="36" fill="none" stroke="#2C7BE0" stroke-width="14"/></svg>`;
   L.XICON = `<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20 L80 80 M80 20 L20 80" stroke="#E0453B" stroke-width="14" stroke-linecap="round"/></svg>`;
+
+  // ---------- treasures ----------
+  const SV = b => `<svg viewBox="0 0 64 56" aria-hidden="true">${b}</svg>`;
+  L.ICONS = {
+    coin: SV(`<ellipse cx="32" cy="30" rx="22" ry="22" fill="#F4B400" stroke="#1D2A44" stroke-width="3"/><ellipse cx="32" cy="30" rx="14" ry="14" fill="none" stroke="#B57F00" stroke-width="3"/><path d="M27 22 L32 38 L37 22" fill="none" stroke="#B57F00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`),
+    ruby: SV(`<polygon points="32,3 56,18 50,44 32,53 14,44 8,18" fill="#E2405A" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><polygon points="32,12 46,21 42,38 32,44 22,38 18,21" fill="#F37A8C"/><polyline points="32,3 32,12 M56,18 46,21 M50,44 42,38 M14,44 22,38 M8,18 18,21" fill="none" stroke="#1D2A44" stroke-width="2"/>`),
+    gem: SV(`<polygon points="14,2 50,2 62,18 32,54 2,18" fill="#46C3E8" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><polygon points="14,2 22,18 32,2" fill="#9BE3F6"/><polygon points="32,2 42,18 50,2" fill="#9BE3F6"/><polygon points="2,18 62,18 32,54" fill="#2AA7D0"/><polygon points="22,18 42,18 32,54" fill="#5FD0F0"/><polyline points="2,18 62,18" fill="none" stroke="#1D2A44" stroke-width="2.5"/><polyline points="14,2 22,18 32,54 42,18 50,2" fill="none" stroke="#1D2A44" stroke-width="2"/>`),
+    crown: SV(`<polygon points="6,44 4,14 20,28 32,6 44,28 60,14 58,44" fill="#F4B400" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><rect x="6" y="44" width="52" height="8" rx="2" fill="#E09A00" stroke="#1D2A44" stroke-width="3"/><circle cx="32" cy="34" r="5" fill="#E2405A" stroke="#1D2A44" stroke-width="2"/><circle cx="17" cy="38" r="3.5" fill="#46C3E8" stroke="#1D2A44" stroke-width="2"/><circle cx="47" cy="38" r="3.5" fill="#46C3E8" stroke="#1D2A44" stroke-width="2"/>`),
+    rock: SV(`<path d="M8 46 Q4 30 16 22 Q22 8 38 12 Q56 14 58 32 Q62 46 48 50 Q28 54 8 46 Z" fill="#C9CED8" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><path d="M20 26 Q26 22 30 26 M40 34 Q44 30 48 34" fill="none" stroke="#8E96A6" stroke-width="2.5" stroke-linecap="round"/>`),
+    boot: SV(`<path d="M18 4 H38 V34 L54 38 Q60 40 60 46 V52 H10 V40 Q14 36 16 30 Z" fill="#9B6B43" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><path d="M18 14 H38 M10 46 H60" stroke="#6E4A2C" stroke-width="3"/><circle cx="46" cy="44" r="2" fill="#1D2A44"/>`),
+    shell: SV(`<path d="M32 50 L8 26 Q8 8 32 6 Q56 8 56 26 Z" fill="#F6E3C8" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><path d="M32 50 L20 12 M32 50 L32 6 M32 50 L44 12" fill="none" stroke="#C9A77A" stroke-width="2.5"/>`)
+  };
+  // 보물 종류 (점수가 높을수록 드물게 나옴). 퀴즈 settings.treasureTypes 로 바꿀 수 있음
+  L.DEFAULT_TREASURES = [
+    { icon: "coin", name: "금화", points: 3, weight: 4 },
+    { icon: "ruby", name: "루비", points: 5, weight: 3 },
+    { icon: "gem", name: "다이아몬드", points: 7, weight: 2 },
+    { icon: "crown", name: "왕관", points: 10, weight: 1 }
+  ];
+  L.BLANKS = [
+    { icon: "rock", name: "돌멩이" }, { icon: "boot", name: "낡은 장화" }, { icon: "shell", name: "빈 조개껍데기" }
+  ];
+  L.treasureTypes = (Q, q) => (q && q.treasureTypes) || Q.set.treasureTypes || L.DEFAULT_TREASURES;
+  L.treasureRange = Q => { const t = L.treasureTypes(Q).map(x => x.points); return Math.min(...t) === Math.max(...t) ? `${t[0]}점` : `${Math.min(...t)}~${Math.max(...t)}점`; };
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const pickWeighted = arr => { const tot = arr.reduce((a, x) => a + (x.weight || 1), 0); let r = Math.random() * tot; for (const x of arr) { r -= x.weight || 1; if (r < 0) return x; } return arr[arr.length - 1]; };
+  /** 한 문제의 보물판: [{icon,name,points}] — points 0 이면 꽝 */
+  L.makeBoard = (Q, q) => {
+    const n = L.cardsOf(Q, q), t = L.treOf(Q, q), types = L.treasureTypes(Q, q);
+    const pos = L.shuffleBoard(n, t);
+    return pos.map(has => {
+      const x = has ? pickWeighted(types) : pick(L.BLANKS);
+      return { icon: x.icon, name: x.name, points: has ? x.points : 0 };
+    });
+  };
+  L.icon = k => L.ICONS[k] || L.ICONS.gem;
 
   // ---------- backend ----------
   L.makeBackend = () => {

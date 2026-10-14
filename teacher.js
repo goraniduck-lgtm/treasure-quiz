@@ -67,7 +67,17 @@
 
   // ---------- control ----------
   const setState = s => B.set("rooms/" + code + "/state", s);
-  function go(phase, q) { showAns = false; confirmEnd = false; setState({ phase, q, at: B.now() }); }
+  async function newBoard(qi) {
+    const old = R && R.boards && R.boards["q" + qi];
+    await B.set("rooms/" + code + "/boards/q" + qi, { cards: L.makeBoard(Q, Q.questions[qi]), v: ((old && old.v) || 0) + 1 });
+  }
+  async function go(phase, q) {
+    showAns = false; confirmEnd = false;
+    if (phase === "q" && !(R && R.boards && R.boards["q" + q])) await newBoard(q);   // 문제를 처음 열 때 보물판 만들기
+    setState({ phase, q, at: B.now() });
+  }
+  let flash = "", flashTimer = null;
+  function say(msg) { flash = msg; render(); clearTimeout(flashTimer); flashTimer = setTimeout(() => { flash = ""; render(); }, 2500); }
 
   // ---------- main view ----------
   function render() {
@@ -90,7 +100,7 @@
     let left = "", ctrl = "";
     if (st.phase === "lobby") {
       left = `<div class="card wait">${L.CHEST}<h2>${esc(Q.title)}</h2><p>${esc(Q.subtitle || "")}</p>
-        <div class="meta"><span class="chip">문제 ${n}개</span><span class="chip">정답 만점 ${L.maxBase(Q)}점</span><span class="chip">보물 1개 +${Q.set.treasureBonus}점</span></div>
+        <div class="meta"><span class="chip">문제 ${n}개</span><span class="chip">정답 만점 ${L.maxBase(Q)}점</span><span class="chip">보물 ${L.treasureRange(Q)}</span></div>
         <img src="qr-student.svg" alt="학생 주소 QR 코드" style="width:min(240px,60%);height:auto">
         <p>QR을 찍거나 학생 주소로 들어와 방 코드 <b>${esc(code)}</b>를 입력하면 오른쪽에 이름이 나타나요.</p></div>`;
       ctrl = `<button class="go" id="start" ${students.length ? "" : "disabled"}>문제 1 열기</button>`;
@@ -99,9 +109,11 @@
       const right = students.filter(s => qa[s.id] && qa[s.id].correct).length;
       left = `<div class="card">${L.questionHead(Q, q, st.q + 1)}<div>${L.answerArea(q, showAns && q.type !== "short" && q.type !== "number" ? String(L.answersOf(q)[0]) : "", { preview: true })}</div>
         ${showAns ? `<div class="t-ans">정답: ${esc(L.showAns(q))} · 맞힌 학생 ${right}명 / 제출 ${submitted}명</div>${q.explain ? `<p class="small">${L.fmt(q.explain)}</p>` : ""}` : ""}
-        <div class="meter" aria-label="제출 비율"><i style="width:${(online || students.length) ? Math.round(100 * submitted / (online || students.length)) : 0}%"></i></div></div>`;
+        <div class="meter" aria-label="제출 비율"><i style="width:${(online || students.length) ? Math.round(100 * submitted / (online || students.length)) : 0}%"></i></div>
+        ${boardPreview(st.q)}</div>`;
       ctrl = `<button class="go ghost" id="prev">${st.q === 0 ? "처음 화면" : "◀ 이전 문제"}</button>
         <button class="go ghost" id="reveal">${showAns ? "정답 가리기" : "정답 보기"}</button>
+        <button class="go ghost" id="shuffle">보물 섞기</button>
         <button class="go" id="next">${st.q + 1 < n ? `문제 ${st.q + 2} 열기 ▶` : "결과 보기 ▶"}</button>`;
     } else {
       left = leaderboard(students);
@@ -115,7 +127,7 @@
       let cls = "", stTxt = "";
       if (st.phase === "q") {
         if (!r) stTxt = "푸는 중";
-        else if (showMarks) { cls = r.correct ? "ok" : "no"; stTxt = (r.correct ? "정답" : "오답") + (r.treasure ? " " + L.GEM : ""); }
+        else if (showMarks) { cls = r.correct ? "ok" : "no"; stTxt = (r.correct ? "정답" : "오답") + (r.treasure && r.item ? " " + L.icon(r.item.icon) : ""); }
         else { cls = "sub"; stTxt = "제출"; }
       } else stTxt = "대기";
       const score = showMarks ? `<b>${L.scoreOf(R.answers, s.id)}점</b>` : "";
@@ -124,7 +136,7 @@
 
     app.innerHTML = `<div class="t-wrap">${banner()}${top}
       <div class="t-main">
-        <div style="display:grid;gap:16px;min-width:0">${left}<div class="t-ctrl">${ctrl}</div></div>
+        <div style="display:grid;gap:16px;min-width:0">${left}<div class="t-ctrl">${ctrl}</div>${flash ? `<div class="banner">${esc(flash)}</div>` : ""}</div>
         <div class="card" style="align-content:start">
           <div class="roster-head"><h2>학생 ${students.length}명</h2>
             <label class="toggle"><input type="checkbox" id="marks" ${showMarks ? "checked" : ""}>정답 여부·점수 보기</label></div>
@@ -134,6 +146,14 @@
       </div></div>`;
 
     bind(st, n);
+  }
+
+  // 보물판 미리보기: '정답 여부·점수 보기'를 켰을 때만 (TV에 띄운 화면에서 보물 위치가 보이지 않게)
+  function boardPreview(qi) {
+    const b = R.boards && R.boards["q" + qi];
+    if (!b || !Array.isArray(b.cards)) return "";
+    if (!showMarks) return `<p class="small">보물판 준비됨 · 섞은 횟수 ${Math.max(0, (b.v || 1) - 1)}번</p>`;
+    return `<div class="bprev">${b.cards.map((c, i) => `<span class="bp ${c.points > 0 ? "has" : ""}"><b>${i + 1}</b>${L.icon(c.icon)}<small>${c.points > 0 ? "+" + c.points : "꽝"}</small></span>`).join("")}</div>`;
   }
 
   function leaderboard(students) {
@@ -162,6 +182,7 @@
     on("next", () => (st.q + 1 < n ? go("q", st.q + 1) : go("end", st.q)));
     on("prev", () => (st.q === 0 ? go("lobby", 0) : go("q", st.q - 1)));
     on("reveal", () => { showAns = !showAns; render(); });
+    on("shuffle", async () => { await newBoard(st.q); say("보물 위치와 종류를 새로 섞었어요. 지금부터 고르는 학생에게 적용돼요."); });
     on("back", () => go("q", n - 1));
     on("end", () => { confirmEnd = true; render(); });
     on("endno", () => { confirmEnd = false; render(); });
