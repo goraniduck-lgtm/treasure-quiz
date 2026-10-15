@@ -333,3 +333,13 @@ body.local::after{content:'연습 모드';position:fixed;left:8px;bottom:8px;bac
   .s-draw .tools{flex-direction:column;align-items:flex-start;justify-content:flex-start}
   .s-draw .colors{flex-wrap:wrap}
 }
+
+/* 내 그림 기억 퀴즈: 직접 쓰기 */
+.self-q .typebox{display:flex;gap:8px;width:100%;max-width:560px}
+.self-q .typebox input{flex:1;min-width:0;border:3px solid var(--line);border-radius:14px;padding:10px 16px;font-family:var(--head);font-size:30px;background:#fff;box-shadow:3px 3px 0 var(--line)}
+.self-q .typebox input:focus{outline:none;background:#fffbe6}
+.self-q .typebox input.right{background:#d3f9d8;color:var(--ok)}
+.self-q .typebox input.wrong{background:#ffe3e3;color:var(--no);animation:shake .3s 2}
+.self-q .typebox .btn{flex:none;padding:8px 16px}
+.self-q .pic{width:min(100%,calc(100dvh - 250px),520px)}
+.mini-grid figcaption small{display:block;font-family:var(--body);font-size:13px;color:var(--no)}

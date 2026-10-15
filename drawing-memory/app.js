@@ -346,7 +346,7 @@ function tLobby() {
       </div>
       <div class="rules">
         <div><b>1</b> ${T.meta.count}개 제시어를 ${T.meta.per}초씩 그려요</div>
-        <div><b>2</b> 내 그림을 보고 제시어 기억해서 맞히기</div>
+        <div><b>2</b> 내 그림을 보고 제시어를 기억해서 써 보기</div>
         <div><b>3</b> ${THEMES[T.meta.theme].icon} 친구 그림 맞히기 경주 ${Math.round(T.meta.raceSec / 60)}분</div>
       </div>
     </section>
@@ -681,7 +681,7 @@ function sLobby() {
     <p>선생님이 시작할 때까지 기다려요.</p>
     <ol class="flow">
       <li><b>그리기</b> 제시어가 ${P.meta.per}초마다 바뀌어요. 빨리 그려요!</li>
-      <li><b>기억하기</b> 순서가 섞인 내 그림을 보고 제시어를 맞혀요.</li>
+      <li><b>기억하기</b> 순서가 섞인 내 그림을 보고 제시어를 직접 써서 맞혀요.</li>
       <li><b>경주</b> 친구 그림을 보고 제시어를 최대한 많이 맞혀요.</li>
     </ol>
   </main>`);
@@ -817,13 +817,16 @@ async function sSelf() {
   await Promise.all(S.order.map(async k => { pics[k] = P.myPics[wi(k)] || (await DB.get(`${PR()}/pics/${k}/${P.pid}`)); }));
   if (P.meta.state !== 'self') return;
   if (S.done || S.pos >= S.n) return selfReview(S, pics);
+  S.typed = S.typed || {};
   show(`${sHead('<span class="prog" id="prog"></span><span class="score" id="score"></span>')}
-  <main class="s-quiz">
-    <h2 class="qtitle">🧠 내가 그린 그림이에요. 제시어는 뭐였을까?</h2>
-    <div class="qbody">
-      <div class="pic"><img id="pic" alt=""><div class="fb" id="fb"></div></div>
-      ${bankHTML(words)}
-    </div>
+  <main class="s-quiz self-q">
+    <h2 class="qtitle">🧠 내가 그린 그림이에요. 제시어를 써 볼까요?</h2>
+    <form class="typebox" id="tf" autocomplete="off">
+      <input id="ta" type="text" placeholder="제시어 쓰기" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+      <button class="btn primary" id="tok" type="submit">확인</button>
+      <button class="btn" id="tpass" type="button">패스</button>
+    </form>
+    <div class="pic"><img id="pic" alt=""><div class="fb" id="fb"></div></div>
   </main>`);
   let lock = false;
   const showQ = () => {
@@ -831,22 +834,29 @@ async function sSelf() {
     $('#score').textContent = `⭕ ${S.score}`;
     $('#pic').src = pics[S.order[S.pos]] || '';
     $('#fb').className = 'fb';
-    $$('#bank button').forEach(b => b.className = '');
+    const ta = $('#ta'); ta.value = ''; ta.className = ''; ta.disabled = false; ta.focus();
   };
   showQ();
-  $('#bank').onclick = async e => {
-    const b = e.target.closest('button'); if (!b || lock) return;
+  const answer = typed => {
+    if (lock) return;
     lock = true;
-    const k = S.order[S.pos], ans = words[wi(k)], ok = b.dataset.w === ans;
-    b.className = ok ? 'right' : 'wrong';
-    if (!ok) $$('#bank button').forEach(x => { if (x.dataset.w === ans) x.className = 'right'; });
+    const k = S.order[S.pos], ans = words[wi(k)], ok = typed !== null && normWord(typed) === normWord(ans);
+    const ta = $('#ta'); ta.className = ok ? 'right' : 'wrong'; ta.disabled = true;
     flash(ok, ans);
-    S.res[k] = ok ? 1 : 0; if (ok) S.score++; S.pos++;
+    S.res[k] = ok ? 1 : 0; S.typed[k] = typed || ''; if (ok) S.score++; S.pos++;
     if (S.pos >= S.n) S.done = true;
-    DB.update(base, { pos: S.pos, score: S.score, ['res/' + k]: S.res[k], done: !!S.done });
-    setTimeout(() => { lock = false; if (P.meta.state !== 'self') return; if (S.done) selfReview(S, pics); else showQ(); }, ok ? 900 : 1600);
+    DB.update(base, { pos: S.pos, score: S.score, ['res/' + k]: S.res[k], ['typed/' + k]: S.typed[k], done: !!S.done });
+    setTimeout(() => { lock = false; if (P.meta.state !== 'self') return; if (S.done) selfReview(S, pics); else showQ(); }, ok ? 1000 : 1900);
   };
+  $('#tf').onsubmit = e => {
+    e.preventDefault();
+    const v = $('#ta').value.trim();
+    if (!v) { $('#ta').focus(); return toast('제시어를 써 주세요'); }
+    answer(v);
+  };
+  $('#tpass').onclick = () => answer(null);
 }
+const normWord = s => String(s).normalize('NFC').replace(/[\s.,!?~·'"()]/g, '').toLowerCase();
 function selfReview(S, pics) {
   const words = P.meta.words;
   show(`${sHead()}
@@ -855,7 +865,7 @@ function selfReview(S, pics) {
       <h2>기억 퀴즈 끝!</h2>
       <div class="bigscore">${S.score} <small>/ ${S.n}</small></div>
       <p>선생님이 <b>친구 그림 맞히기 경주</b>를 시작할 때까지 기다려요.</p></div>
-    <div class="mini-grid">${S.order.slice().sort().map(k => `<figure class="${S.res[k] ? 'o' : 'x'}"><img src="${pics[k] || ''}" alt=""><figcaption>${S.res[k] ? '⭕' : '❌'} ${esc(words[wi(k)])}</figcaption></figure>`).join('') || '<p class="muted">그린 그림이 없어요.</p>'}</div>
+    <div class="mini-grid">${S.order.slice().sort().map(k => `<figure class="${S.res[k] ? 'o' : 'x'}"><img src="${pics[k] || ''}" alt=""><figcaption>${S.res[k] ? '⭕' : '❌'} ${esc(words[wi(k)])}${!S.res[k] && S.typed && S.typed[k] ? `<small>내 답: ${esc(S.typed[k])}</small>` : ''}</figcaption></figure>`).join('') || '<p class="muted">그린 그림이 없어요.</p>'}</div>
   </main>`);
 }
 
