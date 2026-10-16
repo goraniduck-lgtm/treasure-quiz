@@ -92,7 +92,7 @@ function makeLocalDB() {
     now: () => Date.now(),
     get: async p => clone(getAt(p)),
     set: async (p, v) => write(p, v),
-    update: async (p, o) => { for (const k in o) write(p + '/' + k, o[k]); },
+    update: async (p, o) => { try { for (const k in o) writeFlat(parts(p + '/' + k), o[k]); } catch (e) { toast('연습 모드 저장 공간이 가득 찼어요'); } notify(); },
     remove: async p => write(p, null),
     on(p, cb) {
       let last;
@@ -124,7 +124,7 @@ function timerHTML(id, big) {
   </div>`;
 }
 function updateTimer(el, remain, total) {
-  if (!el) return;
+  if (!el || !isFinite(remain) || !isFinite(total) || total <= 0) return;
   const frac = Math.max(0, Math.min(1, remain / total));
   const e = (1 - frac) * Math.PI * 2;
   const x = 50 + 41 * Math.sin(e), y = 50 - 41 * Math.cos(e);
@@ -178,6 +178,57 @@ function sprite(theme, num) {
 }
 
 /* =========================================================
+   전체화면 · 뒤로 가기 막기 · 실수 방지
+   ========================================================= */
+const FS = {
+  can: !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen) && !Q.has('nofs'),
+  failed: false,
+  on: () => !!(document.fullscreenElement || document.webkitFullscreenElement),
+  enter() {
+    if (!FS.can || FS.on()) return Promise.resolve(FS.on());
+    const e = document.documentElement, f = e.requestFullscreen || e.webkitRequestFullscreen;
+    try { return Promise.resolve(f.call(e, { navigationUI: 'hide' })).then(() => true, () => { FS.failed = true; return false; }); }
+    catch (x) { FS.failed = true; return Promise.resolve(false); }
+  },
+  exit() { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} },
+  toggle() { FS.on() ? FS.exit() : FS.enter(); },
+};
+window.FS = FS;
+/* 학생: 전체화면이 풀리면 '다시 켜기' 화면 */
+function fsCheck() {
+  const gate = $('#fsgate');
+  const need = !isTeacher && P.joined && P.meta && P.meta.fs !== false && FS.can && !FS.failed && !FS.on();
+  if (need && !gate) {
+    const g = document.createElement('div'); g.id = 'fsgate';
+    g.innerHTML = `<button id="fsgo"><span class="big-emoji">⛶</span><b>화면을 눌러서 계속하기</b><small>전체화면으로 돌아가요</small></button>`;
+    document.body.appendChild(g);
+    g.onclick = async () => { trapBack(); const ok = await FS.enter(); if (!ok) { FS.failed = true; } fsCheck(); };
+  } else if (!need && gate) gate.remove();
+  document.body.classList.toggle('fs', FS.on());
+  if (P.joined && !isTeacher && P.lastFs !== FS.on()) { P.lastFs = FS.on(); DB.update(PR() + '/players/' + P.pid, { fs: FS.on() }).catch(() => {}); }
+}
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { document.body.classList.toggle('fs', FS.on()); fsCheck(); }));
+/* 뒤로 가기를 눌러도 게임 화면에 머물기 */
+let backTrapped = false;
+function trapBack() {
+  if (backTrapped) return;
+  backTrapped = true;
+  try { history.pushState({ dm: 1 }, '', location.href); } catch (e) {}
+}
+window.addEventListener('popstate', () => {
+  if (isTeacher || !P.joined) return;
+  try { history.pushState({ dm: 1 }, '', location.href); } catch (e) {}
+  toast('게임 중에는 뒤로 갈 수 없어요');
+});
+window.addEventListener('beforeunload', e => {
+  if (isTeacher || !P.joined || !P.meta || P.meta.state === 'lobby' || P.meta.state === 'end') return;
+  e.preventDefault(); e.returnValue = '';
+});
+/* 길게 누르기 메뉴·끌기 막기 (글자 쓰는 칸은 제외) */
+document.addEventListener('contextmenu', e => { if (!isTeacher && !e.target.closest('input,textarea')) e.preventDefault(); });
+document.addEventListener('dragstart', e => { if (!isTeacher) e.preventDefault(); });
+
+/* =========================================================
    첫 화면
    ========================================================= */
 function home() {
@@ -193,60 +244,114 @@ window.addEventListener('hashchange', () => { if (!T.code && !P.joined) home(); 
 const T = { code: null, meta: null, players: {}, ink: {}, self: {}, race: {}, unsubs: [], view: null, hideWord: false, lastBeep: 0 };
 const R = () => 'rooms/' + T.code;
 
-function teacherHome() {
-  isTeacher = true;
-  const st = Object.assign({ count: 20, per: 10, raceMin: 3, theme: 'animal', words: DEFAULT_WORDS }, lsGet('dm_settings') || {});
-  const saved = lsGet('dm_teacher_code');
-  show(`
-  <div class="t-setup">
-    <header class="brand"><div class="logo">🖍️</div><div><h1>그림 기억 레이스</h1><p>그리고 · 기억하고 · 맞히기</p></div></header>
-    ${saved ? `<div class="card resume"><div>진행하던 방 <b>${esc(saved)}</b>이 있어요.</div><button class="btn" id="resume">이어서 진행</button></div>` : ''}
-    <div class="card">
-      <h2>게임 설정</h2>
+function settingsHTML(st) {
+  return `
       <div class="grid2">
         <label>제시어 개수 <b id="countV">${st.count}개</b><input type="range" id="count" min="5" max="30" value="${st.count}"></label>
         <label>제시어 하나당 그리는 시간 <b id="perV">${st.per}초</b><input type="range" id="per" min="5" max="30" value="${st.per}"></label>
         <label>친구 그림 맞히기 경주 시간 <b id="raceV">${st.raceMin}분</b><input type="range" id="raceMin" min="1" max="6" value="${st.raceMin}"></label>
         <div class="lbl">경주 모양
-          <div class="seg" id="theme">${Object.entries(THEMES).map(([k, v]) => `<button data-v="${k}" class="${st.theme === k ? 'on' : ''}">${v.icon} ${v.name}</button>`).join('')}</div>
+          <div class="seg" id="theme">${Object.entries(THEMES).map(([k, v]) => `<button type="button" data-v="${k}" class="${st.theme === k ? 'on' : ''}">${v.icon} ${v.name}</button>`).join('')}</div>
         </div>
       </div>
-      <label class="wl">제시어 목록 <small>(띄어쓰기·줄바꿈으로 구분 · 이 중에서 무작위로 뽑아요)</small>
+      <label class="wl">제시어 목록 <small>(띄어쓰기·줄바꿈으로 구분)</small>
         <textarea id="words" rows="5">${esc(st.words)}</textarea></label>
-      <div class="row"><span id="wcount" class="muted"></span><button class="link" id="resetWords">기본 목록으로</button></div>
-      <div class="total" id="total"></div>
-    </div>
-    <button class="btn big primary" id="create">방 만들기 →</button>
-    ${LOCAL ? '<p class="muted center">연습 모드: 이 브라우저의 다른 탭에서만 학생으로 들어올 수 있어요.</p>' : ''}
-  </div>`);
+      <div class="row"><span id="wcount" class="muted"></span><button type="button" class="link" id="resetWords">기본 목록으로</button></div>
+      <div class="opts">
+        <div class="seg" id="order">
+          <button type="button" data-v="random" class="${st.order !== 'list' ? 'on' : ''}">🎲 목록에서 무작위로 뽑기</button>
+          <button type="button" data-v="list" class="${st.order === 'list' ? 'on' : ''}">📋 목록 순서 그대로</button>
+        </div>
+        <label class="chk" id="skipWrap"><input type="checkbox" id="skipUsed" ${st.skipUsed !== false ? 'checked' : ''}> 앞 판에 나온 제시어는 빼고 뽑기</label>
+        <label class="chk"><input type="checkbox" id="fsLock" ${st.fs !== false ? 'checked' : ''}> 학생 화면 전체화면 고정 <small class="muted">(전체화면이 풀리면 다시 켜는 화면이 떠요)</small></label>
+      </div>
+      <div class="total" id="total"></div>`;
+}
+function bindSettings(btn) {
   const upd = () => {
     const words = parseWords($('#words').value);
     $('#countV').textContent = $('#count').value + '개';
     $('#perV').textContent = $('#per').value + '초';
     $('#raceV').textContent = $('#raceMin').value + '분';
     $('#wcount').textContent = `목록에 ${words.length}개`;
+    $('#skipWrap').style.display = $('#order .on').dataset.v === 'list' ? 'none' : '';
     const c = +$('#count').value;
     $('#total').innerHTML = words.length < c ? `<span class="bad">제시어가 ${c - words.length}개 더 필요해요</span>` : `그리기 시간 약 <b>${fmtT(c * $('#per').value * 1000)}</b>`;
-    $('#create').disabled = words.length < c;
+    btn.disabled = words.length < c;
   };
   ['count', 'per', 'raceMin', 'words'].forEach(id => $('#' + id).addEventListener('input', upd));
-  $('#theme').onclick = e => { const b = e.target.closest('button'); if (!b) return; $$('#theme button').forEach(x => x.classList.toggle('on', x === b)); };
+  ['theme', 'order'].forEach(id => $('#' + id).onclick = e => { const b = e.target.closest('button'); if (!b) return; $$('#' + id + ' button').forEach(x => x.classList.toggle('on', x === b)); upd(); });
   $('#resetWords').onclick = () => { $('#words').value = DEFAULT_WORDS; upd(); };
   upd();
+  return () => ({ count: +$('#count').value, per: +$('#per').value, raceMin: +$('#raceMin').value, theme: $('#theme .on').dataset.v,
+    words: $('#words').value, order: $('#order .on').dataset.v, skipUsed: $('#skipUsed').checked, fs: $('#fsLock').checked });
+}
+const metaFromSettings = s => ({ count: s.count, per: s.per, raceSec: s.raceMin * 60, theme: s.theme, pool: parseWords(s.words), order: s.order, skipUsed: s.skipUsed, fs: s.fs });
+const loadSettings = () => Object.assign({ count: 20, per: 10, raceMin: 3, theme: 'animal', words: DEFAULT_WORDS, order: 'random', skipUsed: true, fs: true }, lsGet('dm_settings') || {});
+
+function teacherHome() {
+  isTeacher = true;
+  const st = loadSettings();
+  const saved = lsGet('dm_teacher_code');
+  show(`
+  <div class="t-setup">
+    <header class="brand"><div class="logo">🖍️</div><div><h1>그림 기억 레이스</h1><p>그리고 · 기억하고 · 맞히기</p></div><button class="icon fsbtn" id="fs" title="전체화면">⛶</button></header>
+    ${saved ? `<div class="card resume"><div>진행하던 방 <b>${esc(saved)}</b>이 있어요.</div><button class="btn" id="resume">이어서 진행</button></div>` : ''}
+    <div class="card">
+      <h2>게임 설정</h2>
+      ${settingsHTML(st)}
+    </div>
+    <button class="btn big primary" id="create">방 만들기 →</button>
+    ${LOCAL ? '<p class="muted center">연습 모드: 이 브라우저의 다른 탭에서만 학생으로 들어올 수 있어요.</p>' : ''}
+  </div>`);
+  $('#fs').onclick = () => FS.toggle();
+  const read = bindSettings($('#create'));
   if ($('#resume')) $('#resume').onclick = () => { initAudio(); openTeacherRoom(saved); };
   $('#create').onclick = async () => {
     initAudio();
-    const s = { count: +$('#count').value, per: +$('#per').value, raceMin: +$('#raceMin').value, theme: $('#theme .on').dataset.v, words: $('#words').value };
+    const s = read();
     lsSet('dm_settings', s);
     $('#create').disabled = true;
     try {
       let code;
       for (let i = 0; i < 30; i++) { code = String(1000 + Math.floor(Math.random() * 9000)); if (!(await DB.get('rooms/' + code + '/meta'))) break; }
-      await DB.set('rooms/' + code, { meta: { game: 'drawmem', state: 'lobby', created: DB.now(), count: s.count, per: s.per, raceSec: s.raceMin * 60, theme: s.theme, pool: parseWords(s.words) } });
+      await DB.set('rooms/' + code, { meta: Object.assign({ game: 'drawmem', state: 'lobby', created: DB.now() }, metaFromSettings(s)) });
       lsSet('dm_teacher_code', code);
       openTeacherRoom(code);
     } catch (e) { console.error(e); toast('방을 만들지 못했어요. 인터넷 연결을 확인해 주세요.'); $('#create').disabled = false; }
   };
+}
+/* 대기실에서 제시어·설정 바꾸기 (들어온 학생은 그대로) */
+function settingsModal() {
+  const m = T.meta;
+  const st = Object.assign(loadSettings(), { count: m.count, per: m.per, raceMin: Math.round(m.raceSec / 60), theme: m.theme,
+    words: (m.pool || []).join(' '), order: m.order || 'random', skipUsed: m.skipUsed !== false, fs: m.fs !== false });
+  modal(`<div class="gal-head"><h2>⚙️ 제시어·설정 바꾸기</h2><button class="icon" id="sx">✕</button></div>
+    <p class="muted" style="margin:0 0 12px">들어와 있는 학생들은 그대로 두고, 다음 판의 제시어와 설정만 바뀌어요.</p>
+    ${settingsHTML(st)}
+    <div class="row" style="justify-content:flex-end;gap:10px;margin-top:14px"><button class="btn ghost" id="sCancel">취소</button><button class="btn primary" id="sSave">저장하기</button></div>`, true);
+  const read = bindSettings($('#sSave'));
+  $('#sx').onclick = $('#sCancel').onclick = closeModal;
+  $('#sSave').onclick = async () => {
+    const s = read(); lsSet('dm_settings', s);
+    const old = (T.meta.pool || []).join(' '), now = parseWords(s.words).join(' ');
+    const patch = metaFromSettings(s);
+    if (old !== now) patch.used = null;   // 목록이 바뀌면 '앞 판에 나온 제시어' 기록도 새로 시작
+    $('#sSave').disabled = true;
+    await DB.update(R() + '/meta', patch);
+    closeModal(); toast('저장했어요');
+  };
+}
+/* 이번 판 제시어 뽑기 */
+function pickWords(m) {
+  const pool = m.pool && m.pool.length ? m.pool : parseWords(DEFAULT_WORDS), n = m.count;
+  if (m.order === 'list') return { words: pool.slice(0, n), used: null };
+  if (m.skipUsed === false) return { words: shuffle(pool).slice(0, n), used: null };
+  const usedSet = new Set(m.used || []);
+  const fresh = shuffle(pool.filter(w => !usedSet.has(w)));
+  if (fresh.length >= n) { const words = fresh.slice(0, n); return { words, used: [...usedSet, ...words] }; }
+  const words = fresh.concat(shuffle(pool.filter(w => usedSet.has(w))).slice(0, n - fresh.length));
+  return { words: shuffle(words), used: words };   // 목록을 한 바퀴 다 썼으면 처음부터 다시
 }
 function parseWords(t) { return [...new Set(String(t).split(/[\s,]+/).map(w => w.trim()).filter(Boolean))]; }
 
@@ -266,6 +371,7 @@ function openTeacherRoom(code) {
 }
 const roster = () => Object.entries(T.players).filter(([, p]) => p && p.num).map(([id, p]) => ({ id, ...p })).sort((a, b) => a.num - b.num);
 const pname = p => `${p.num}번${p.name ? ' ' + esc(p.name) : ''}`;
+const tileFlag = p => p.on === false ? '<span class="flag off">나감</span>' : (T.meta && T.meta.fs !== false && p.fs === false ? '<span class="flag">⛶ 풀림</span>' : '');
 
 /* 시간이 다 되면 다음 단계로 자동 진행 */
 let advancing = false;
@@ -283,8 +389,9 @@ function teacherAuto() {
 function tTop() {
   return `<header class="t-top">
     <div class="brand sm"><span class="logo">🖍️</span><b>그림 기억 레이스</b></div>
-    <div class="code">방 코드 <b>${esc(T.code)}</b></div>
+    ${miniQR()}
     <div class="t-tools">
+      <button class="icon" id="fs" title="전체화면">⛶</button>
       <button class="icon" id="snd" title="소리">${soundOn ? '🔊' : '🔇'}</button>
       <button class="icon" id="gal" title="그림 모아 보기">🖼️</button>
       <button class="icon" id="menu" title="메뉴">⋯</button>
@@ -293,16 +400,43 @@ function tTop() {
 }
 function bindTop() {
   $('#snd').onclick = () => { soundOn = !soundOn; initAudio(); $('#snd').textContent = soundOn ? '🔊' : '🔇'; };
+  bindMiniQR();
   $('#gal').onclick = () => gallery();
   $('#menu').onclick = () => teacherMenu();
 }
+const joinURL = () => location.origin + location.pathname + '?code=' + T.code + (LOCAL ? '&local' : '');
+function makeQR(el) {
+  if (!el) return;
+  try {
+    const q = qrcode(0, 'M'); q.addData(joinURL()); q.make();
+    el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  } catch (e) { el.innerHTML = ''; }
+}
+function miniQR() {
+  return `<button class="miniqr" id="miniQr" title="학생 입장 QR 크게 보기"><span class="mq" id="mq"></span><span class="mt">학생 입장<b>${esc(T.code)}</b></span></button>`;
+}
+function bindMiniQR() {
+  makeQR($('#mq'));
+  $('#fs') && ($('#fs').onclick = () => FS.toggle());
+  $('#miniQr').onclick = () => {
+    modal(`<div class="bigqr"><div class="gal-head"><h2>학생 입장</h2><button class="icon" id="qx">✕</button></div>
+      <div class="qr" id="bq"></div>
+      <div class="url">${esc(joinURL().replace(/^https?:\/\//, ''))}</div>
+      <div class="step">방 코드 <b class="bigcode">${esc(T.code)}</b></div>
+      <p class="muted">튕기거나 화면을 닫은 학생도 QR을 다시 찍으면 하던 곳으로 돌아와요.</p></div>`);
+    makeQR($('#bq'));
+    $('#qx').onclick = closeModal;
+  };
+}
 function teacherMenu() {
   modal(`<h2>메뉴</h2>
+    ${T.meta.state === 'lobby' ? '<button class="btn wide" id="mSet">⚙️ 제시어·설정 바꾸기</button>' : ''}
     <button class="btn wide" id="mReplay">🔁 같은 학생들과 새 판</button>
     <button class="btn wide" id="mLobby">⏮ 대기실로 돌아가기</button>
     <button class="btn wide danger" id="mClose">🗑 방 닫기 (기록 모두 지우기)</button>
     <button class="btn wide ghost" id="mX">닫기</button>`);
   $('#mX').onclick = closeModal;
+  if ($('#mSet')) $('#mSet').onclick = () => { closeModal(); settingsModal(); };
   $('#mReplay').onclick = async () => { closeModal(); await resetRound(); };
   $('#mLobby').onclick = async () => { closeModal(); await resetRound(); };
   $('#mClose').onclick = async () => {
@@ -318,9 +452,10 @@ async function resetRound() {
 }
 
 function teacherRender() {
-  const st = T.meta.state;
-  if (st !== T.view) {
-    T.view = st;
+  const st = T.meta.state, m = T.meta;
+  const key = st + (st === 'lobby' ? '|' + [m.count, m.per, m.raceSec, m.theme, (m.pool || []).length, m.order, m.skipUsed, m.fs].join('|') : '');
+  if (key !== T.view) {
+    T.view = key;
     document.body.className = 'teacher st-' + st;
     if (st === 'lobby') tLobby();
     else if (st === 'draw') tDraw();
@@ -334,21 +469,26 @@ function teacherUpdate() { if (T.update) T.update(); }
 
 /* ---------- 대기실 ---------- */
 function tLobby() {
-  const url = location.origin + location.pathname + '?code=' + T.code + (LOCAL ? '&local' : '');
+  const url = joinURL(), m = T.meta;
   show(`${tTop()}
   <main class="t-lobby">
     <section class="card joinbox">
-      <div class="qr" id="qr"></div>
-      <div class="howto">
-        <div class="step">① 태블릿으로 QR을 찍거나 주소로 들어가요</div>
-        <div class="url">${esc(url.replace(/^https?:\/\//, ''))}</div>
-        <div class="step">② 방 코드 <b class="bigcode">${esc(T.code)}</b>와 내 번호를 골라요</div>
+      <div class="jrow">
+        <div class="qr" id="qr"></div>
+        <div class="howto">
+          <div class="step">① 태블릿으로 QR을 찍어요</div>
+          <div class="url">${esc(url.replace(/^https?:\/\//, ''))}</div>
+          <div class="step">② 방 코드와 내 번호를 골라요</div>
+          <b class="bigcode">${esc(T.code)}</b>
+        </div>
       </div>
       <div class="rules">
         <div><b>1</b> ${T.meta.count}개 제시어를 ${T.meta.per}초씩 그려요</div>
         <div><b>2</b> 내 그림을 보고 제시어를 기억해서 써 보기</div>
         <div><b>3</b> ${THEMES[T.meta.theme].icon} 친구 그림 맞히기 경주 ${Math.round(T.meta.raceSec / 60)}분</div>
       </div>
+      <div class="wordsinfo"><span>📝 제시어 목록 <b>${(m.pool || []).length}개</b> 중 ${m.order === 'list' ? '앞에서부터 순서대로' : (m.skipUsed !== false && (m.used || []).length ? `무작위 (앞 판 ${m.used.length}개 빼고)` : '무작위')} <b>${m.count}개</b></span>
+        <button class="btn" id="setBtn">⚙️ 바꾸기</button></div>
     </section>
     <section class="card">
       <h2>들어온 학생 <span class="pill" id="cnt">0</span></h2>
@@ -357,21 +497,22 @@ function tLobby() {
   </main>
   <footer class="t-act"><button class="btn big primary" id="start">확인했어요 · 그리기 시작 ▶</button></footer>`);
   bindTop();
-  try { new QRCode($('#qr'), { text: url, width: 168, height: 168, correctLevel: QRCode.CorrectLevel.M }); } catch (e) { $('#qr').innerHTML = '<div class="noqr">QR</div>'; }
+  makeQR($('#qr'));
+  $('#setBtn').onclick = () => settingsModal();
   $('#start').onclick = async () => {
     initAudio();
     const n = roster().length;
     if (!n) return toast('아직 들어온 학생이 없어요');
     $('#start').disabled = true;
-    const words = shuffle(T.meta.pool || parseWords(DEFAULT_WORDS)).slice(0, T.meta.count);
+    const { words, used } = pickWords(T.meta);
     await DB.update(R(), { pics: null, ink: null, self: null, race: null });
-    await DB.update(R() + '/meta', { state: 'draw', words, drawStart: DB.now() + 4500 });
+    await DB.update(R() + '/meta', { state: 'draw', words, used, drawStart: DB.now() + 4500 });
   };
   T.update = () => {
     const rs = roster();
     $('#cnt').textContent = rs.length + '명';
     $('#roster').innerHTML = rs.length ? rs.map(p => `<div class="tile ${p.on === false ? 'off' : ''}">
-        <span class="num">${p.num}</span><span class="nm">${esc(p.name || '')}</span>
+        ${tileFlag(p)}<span class="num">${p.num}</span><span class="nm">${esc(p.name || '')}</span>
         <button class="kick" data-kick="${p.id}" title="내보내기">×</button></div>`).join('')
       : '<p class="muted">학생이 들어오면 여기에 번호가 나타나요.</p>';
     $$('[data-kick]').forEach(b => b.onclick = () => kick(b.dataset.kick));
@@ -424,7 +565,7 @@ function tDraw() {
   };
   T.update = () => {
     const rs = roster();
-    $('#roster').innerHTML = rs.map(p => { const c = Object.keys(T.ink[p.id] || {}).length; return `<div class="tile ${p.on === false ? 'off' : ''}"><span class="num">${p.num}</span><span class="nm">${esc(p.name || '')}</span><span class="cnt">${c}</span></div>`; }).join('');
+    $('#roster').innerHTML = rs.map(p => { const c = Object.keys(T.ink[p.id] || {}).length; return `<div class="tile ${p.on === false ? 'off' : ''}">${tileFlag(p)}<span class="num">${p.num}</span><span class="nm">${esc(p.name || '')}</span><span class="cnt">${c}</span></div>`; }).join('');
   };
 }
 
@@ -457,7 +598,7 @@ function tSelf() {
       const s = T.self[p.id] || {};
       if (s.done) done++;
       const st = s.done ? `<span class="ok">✔ ${s.score || 0}/${s.n || 0}</span>` : s.n ? `<span class="ing">${s.pos || 0}/${s.n}</span>` : '<span class="ing">…</span>';
-      return `<div class="tile ${s.done ? 'fin' : ''} ${p.on === false ? 'off' : ''}"><span class="num">${p.num}</span><span class="nm">${esc(p.name || '')}</span>${st}</div>`;
+      return `<div class="tile ${s.done ? 'fin' : ''} ${p.on === false ? 'off' : ''}">${tileFlag(p)}<span class="num">${p.num}</span><span class="nm">${esc(p.name || '')}</span>${st}</div>`;
     }).join('');
     $('#selfBar').style.width = (rs.length ? done / rs.length * 100 : 0) + '%';
     $('#selfTxt').textContent = `${done} / ${rs.length}명 끝냄`;
@@ -477,7 +618,8 @@ function tRace() {
     <header class="race-head">
       <div class="rtitle"><span>${THEMES[theme].icon}</span> 친구 그림 맞히기 ${THEMES[theme].name}<small>방 ${esc(T.code)}</small></div>
       ${timerHTML('rt', true)}
-      <button class="icon" id="snd">${soundOn ? '🔊' : '🔇'}</button>
+      ${miniQR()}
+      <div class="t-tools"><button class="icon" id="fs" title="전체화면">⛶</button><button class="icon" id="snd">${soundOn ? '🔊' : '🔇'}</button></div>
     </header>
     <div class="race-body">
       <div class="track" id="track" style="--n:${Math.max(rs.length, 1)}">
@@ -489,6 +631,7 @@ function tRace() {
     </div>
   </main>`);
   $('#snd').onclick = () => { soundOn = !soundOn; initAudio(); $('#snd').textContent = soundOn ? '🔊' : '🔇'; };
+  bindMiniQR();
   const total = T.meta.raceSec * 1000;
   screenTick = () => {
     const m = T.meta; if (m.state !== 'race') return;
@@ -601,6 +744,7 @@ function studentJoin(msg) {
   <main class="s-join">
     <header class="brand"><div class="logo">🖍️</div><div><h1>그림 기억 레이스</h1><p>그리고 · 기억하고 · 맞히기</p></div></header>
     ${msg ? `<div class="notice">${esc(msg)}</div>` : ''}
+    ${last.code && last.num && !msg ? `<button class="btn big rejoin" id="rejoin">↩️ 방 ${esc(last.code)} · ${last.num}번으로 다시 들어가기</button>` : ''}
     <div class="card">
       <label class="lbl">방 코드<input id="code" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" value="${esc(code)}"></label>
       <div class="lbl">내 번호</div>
@@ -611,18 +755,21 @@ function studentJoin(msg) {
     <a class="tlink" href="#teacher">선생님 화면</a>
   </main>`);
   $('#nums').onclick = e => { const b = e.target.closest('button'); if (!b) return; num = +b.dataset.n; $$('#nums button').forEach(x => x.classList.toggle('on', x === b)); };
+  if ($('#rejoin')) $('#rejoin').onclick = () => { $('#code').value = last.code; num = last.num; $('#name').value = last.name || ''; $('#go').click(); };
   $('#code').oninput = e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); };
   $('#go').onclick = async () => {
     const c = $('#code').value.trim();
     if (!/^\d{4}$/.test(c)) return toast('방 코드 4자리를 써 주세요');
     if (!num) return toast('내 번호를 골라 주세요');
+    FS.enter();          // 들어가기를 누르는 순간 전체화면 (손가락으로 누를 때만 켤 수 있음)
+    trapBack();
     $('#go').disabled = true;
     try {
       const meta = await DB.get('rooms/' + c + '/meta');
       if (!meta || meta.game !== 'drawmem') { $('#go').disabled = false; return toast('그런 방이 없어요. 코드를 다시 확인해요'); }
       const pid = pidOf(num);
       const ex = await DB.get('rooms/' + c + '/players/' + pid);
-      if (ex && ex.num && ex.on && last.code !== c && !confirm(`${num}번은 이미 들어와 있어요. 내가 ${num}번이 맞나요?`)) { $('#go').disabled = false; return; }
+      if (ex && ex.num && ex.on && !(last.code === c && last.num === num) && !confirm(`${num}번은 이미 들어와 있어요. 내가 ${num}번이 맞나요?`)) { $('#go').disabled = false; return; }
       const name = $('#name').value.trim().slice(0, 6);
       lsSet('dm_student', { code: c, num, name });
       enterRoom(c, num, name);
@@ -634,7 +781,7 @@ async function enterRoom(code, num, name) {
   P.unsubs.forEach(f => f()); P.unsubs = [];
   Object.assign(P, { code, num, name, pid: pidOf(num), joined: true, view: null, myPics: {} });
   const me = PR() + '/players/' + P.pid;
-  await DB.update(me, { num, name, on: true, joined: DB.now() });
+  await DB.update(me, { num, name, on: true, joined: DB.now(), fs: FS.on() });
   DB.onDisconnect(me + '/on', false);
   let seen = false;
   P.unsubs.push(DB.on(me, v => {
@@ -643,20 +790,21 @@ async function enterRoom(code, num, name) {
   }));
   P.unsubs.push(DB.on(PR() + '/meta', v => {
     if (!v) return leaveRoom('방이 닫혔어요');
-    P.meta = v; studentRender();
+    P.meta = v; studentRender(); fsCheck();
   }));
+  fsCheck();
 }
 DB.connected(c => {
   document.body.classList.toggle('offline', !c);
   if (c && P.joined) { const me = PR() + '/players/' + P.pid; DB.update(me, { on: true }); DB.onDisconnect(me + '/on', false); }
 });
 function leaveRoom(msg) {
-  P.unsubs.forEach(f => f()); P.unsubs = []; P.joined = false; P.code = null;
+  P.unsubs.forEach(f => f()); P.unsubs = []; P.joined = false; P.code = null; fsCheck();
   $('#overlay').classList.remove('on'); $('#overlay').innerHTML = '';
   studentJoin(msg);
 }
 function sHead(extra = '') {
-  return `<header class="s-top"><span class="me">${P.num}번${P.name ? ' ' + esc(P.name) : ''}</span>${extra}</header>`;
+  return `<header class="s-top"><span class="me">${P.num}번${P.name ? ' ' + esc(P.name) : ''}</span>${extra}${FS.can ? '<button class="sfs" onclick="FS.toggle()" title="전체화면">⛶</button>' : ''}</header>`;
 }
 function studentRender() {
   const st = P.meta.state;

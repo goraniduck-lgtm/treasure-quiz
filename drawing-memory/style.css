@@ -8,6 +8,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
+html{overscroll-behavior:none}
 body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;-webkit-tap-highlight-color:transparent;
   background-image:radial-gradient(#f1e2c4 1.2px,transparent 1.2px);background-size:22px 22px;overscroll-behavior:none}
 button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
@@ -110,7 +111,7 @@ textarea{border:2px solid var(--line);border-radius:12px;padding:10px;resize:ver
 #create{align-self:center}
 
 .t-top{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bottom:2.5px solid var(--line);background:#fff}
-.t-top .code{margin-left:auto;font-family:var(--head);font-size:20px}
+.t-top .miniqr{margin-left:auto}
 .t-top .code b{background:var(--yellow);border:2px solid var(--line);border-radius:10px;padding:2px 12px;font-size:28px;letter-spacing:3px;margin-left:6px}
 .t-tools{display:flex;gap:8px}
 .t-act{position:sticky;bottom:0;display:flex;justify-content:center;gap:14px;padding:14px;background:linear-gradient(transparent,var(--paper) 30%)}
@@ -343,3 +344,57 @@ body.local::after{content:'연습 모드';position:fixed;left:8px;bottom:8px;bac
 .self-q .typebox .btn{flex:none;padding:8px 16px}
 .self-q .pic{width:min(100%,calc(100dvh - 250px),520px)}
 .mini-grid figcaption small{display:block;font-family:var(--body);font-size:13px;color:var(--no)}
+
+/* 작은 학생 입장 QR (교사 화면 위쪽) */
+.miniqr{display:flex;align-items:center;gap:8px;background:#fff;border:2.5px solid var(--line);border-radius:12px;padding:4px 10px 4px 4px;box-shadow:2px 2px 0 var(--line)}
+.miniqr .mq{width:58px;height:58px;display:block;flex:none}
+.miniqr .mq img,.miniqr .mq canvas{width:58px!important;height:58px!important;display:block}
+.miniqr .mt{display:flex;flex-direction:column;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.1}
+.miniqr .mt b{font-family:var(--head);font-weight:400;font-size:28px;letter-spacing:2px;color:var(--ink);background:var(--yellow);border-radius:8px;padding:0 6px;margin-top:2px}
+.race-head .miniqr .mq,.race-head .miniqr .mq img,.race-head .miniqr .mq canvas{width:72px!important;height:72px!important}
+.race-head .t-tools{display:flex;gap:8px}
+.bigqr{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.bigqr .gal-head{width:100%}
+.fsbtn{margin-left:auto}
+
+/* 대기실 제시어 정보 · 설정 */
+.wordsinfo{background:#e7f5ff;border:2px solid var(--line);border-radius:12px;padding:8px 12px;width:100%}
+.opts{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.chk{display:flex;align-items:center;gap:8px;font-weight:700}
+.chk input{width:22px;height:22px;accent-color:var(--ink)}
+.chk small{font-weight:400}
+
+/* 학생 타일 표시 */
+.tile .flag{position:absolute;top:-10px;left:-6px;background:var(--orange);color:#fff;border:2px solid var(--line);border-radius:99px;font-size:11px;padding:0 6px;font-weight:700}
+.tile .flag.off{background:#868e96}
+
+/* 다시 들어가기 */
+.rejoin{background:#d3f9d8;width:100%}
+
+/* 학생 전체화면 */
+.sfs{margin-left:auto;width:40px;height:36px;border:2px solid var(--line);border-radius:10px;background:#fff;font-size:18px;padding:0}
+.s-top .score + .sfs{margin-left:8px}
+body.fs .sfs{opacity:.35}
+#fsgate{position:fixed;inset:0;z-index:260;background:rgba(43,33,24,.82);display:grid;place-items:center;padding:20px}
+#fsgate button{display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--yellow);border:3px solid var(--line);border-radius:24px;box-shadow:6px 6px 0 var(--line);padding:30px 40px;animation:pulse 1.4s ease-in-out infinite}
+#fsgate b{font-family:var(--head);font-weight:400;font-size:34px}
+#fsgate small{font-size:17px}
+
+/* 학생 화면: 실수로 글자 선택·길게 누르기 막기 */
+body.student{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.student input,body.student textarea{-webkit-user-select:text;user-select:text}
+body.student img{-webkit-user-drag:none;pointer-events:none}
+
+.qr svg,.mq svg{display:block;width:100%;height:100%}
+.joinbox .qr{width:170px;height:170px;padding:6px;flex:none}
+.jrow{display:flex;gap:16px;align-items:center;width:100%;text-align:left}
+.jrow .howto{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
+.jrow .bigcode{font-size:44px}
+.joinbox{gap:12px}
+.wordsinfo{display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left}
+.wordsinfo .btn{font-size:17px;padding:6px 12px;flex:none}
+.tiles>p{grid-column:1/-1}
+.t-lobby,.t-self,.t-end{padding-bottom:110px}
+.miniqr .mq{background:#fff}
+.bigqr .qr{width:min(320px,70vw);height:min(320px,70vw)}
+.tile .flag{font-size:12px;top:-12px}
