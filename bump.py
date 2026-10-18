@@ -4,7 +4,7 @@
 import pathlib, re, time
 v = time.strftime("%Y%m%d%H%M%S")
 root = pathlib.Path(__file__).resolve().parent
-for name in ("index.html", "teacher.html"):
+for name in ("index.html", "teacher.html", "worksheet/index.html", "worksheet/teacher.html"):
     p = root / name
     s = p.read_text(encoding="utf-8")
     s = re.sub(r'((?:src|href)="(?!https?:)[^"?]+\.(?:js|css))(?:\?v=\d+)?"', rf'\1?v={v}"', s)
