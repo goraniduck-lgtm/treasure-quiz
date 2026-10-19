@@ -37,6 +37,24 @@
   // =====================================================================
   L.selfStudent = ({ app, B, me, Q, base, banner, leave }) => {
     let R = null, lastKey = "", draft = "", showFb = null, toastTimer = null, seen = null, busy = false;
+    // 카드·친구 고르기 제한 시간: 이 시간 안에 안 고르면 무작위로 골라 줌
+    const CHOOSE_MS = 3000, deadlines = {};
+    let cdTimer = null;
+    function stopCountdown() { if (cdTimer) { clearInterval(cdTimer); cdTimer = null; } }
+    function countdown(key, onExpire) {
+      stopCountdown();
+      const end = deadlines[key] || (deadlines[key] = Date.now() + CHOOSE_MS);
+      const show = () => {
+        const left = end - Date.now(), el = document.getElementById("cd");
+        if (el) {
+          el.querySelector("b").textContent = Math.max(0, Math.ceil(left / 1000));
+          el.querySelector("i").style.width = Math.max(0, Math.min(100, (100 * left) / CHOOSE_MS)) + "%";
+        }
+        if (left <= 0) { stopCountdown(); onExpire(); }
+      };
+      show(); if (end > Date.now()) cdTimer = setInterval(show, 100);
+    }
+    const cdBox = what => `<div class="cd" id="cd"><span><b>3</b>초 안에 ${what}. 안 고르면 무작위로 골라져요.</span><div class="cdbar"><i></i></div></div>`;
     const SEQ_KEY = "self-seq:" + me.code + ":" + me.sid;
     const n = Q.questions.length;
 
@@ -92,6 +110,7 @@
       const el = document.getElementById("myscore"); if (el) el.textContent = Math.max(0, sc[me.sid] || 0) + "점";
       if (key === lastKey) return;
       lastKey = key;
+      stopCountdown();
       if (st.phase === "lobby" || !st.phase) return viewLobby(sc);
       if (st.phase === "end" || !running()) return viewEnd(sc);
       if (showFb) return viewFeedback(sc);
@@ -149,20 +168,25 @@
         <div class="fb ok"><div class="big">정답이에요! +${cur.e.pts}점</div></div>
         <h2 class="ttitle">카드를 하나 골라요</h2>
         <p class="tsub">점수가 늘어날 수도, 줄어들 수도, 친구 점수를 가져올 수도 있어요.</p>
+        ${cdBox("카드를 골라요")}
         <div class="board" style="--n:${cards.length}">${cards.map((c, i) => `
           <button class="tcard" data-i="${i}" aria-label="${i + 1}번 카드"><span class="in">
             <span class="face front" style="background:${L.CARD_COLORS[i % L.CARD_COLORS.length]}">${i + 1}</span>
             <span class="face back"><span>${L.icon(c.icon)}</span><span class="lab">${esc(L.EFFECTS[c.k].name)}<br><small>${esc(L.EFFECTS[c.k].desc(c.amount))}</small></span></span>
           </span></button>`).join("")}</div></div>`);
       let done = false;
-      app.querySelectorAll(".tcard").forEach(b => b.addEventListener("click", () => {
-        if (done) return; done = true;
+      const choose = b => {
+        if (done) return; done = true; stopCountdown();
+        const cd = document.getElementById("cd"); if (cd) cd.hidden = true;
         const i = Number(b.dataset.i);
         app.querySelectorAll(".tcard").forEach(x => { x.classList.add("open"); x.disabled = true; if (x !== b) x.classList.add("dim"); });
         b.classList.add("pick"); b.querySelector(".back > span").classList.add("sparkle");
         app.querySelector(".ttitle").textContent = L.EFFECTS[cards[i].k].name + "!";
         setTimeout(() => B.update(base + "/log/" + me.sid + "/" + cur.k, { pick: i }), 1500);
-      }));
+      };
+      const btns = Array.from(app.querySelectorAll(".tcard"));
+      btns.forEach(b => b.addEventListener("click", () => choose(b)));
+      countdown("pick-" + cur.k, () => choose(btns[Math.floor(Math.random() * btns.length)]));
     }
 
     function viewTarget(sc, cur) {
@@ -171,10 +195,14 @@
       const verb = cur.eff.k === "swap" ? "누구와 점수를 바꿀까요?" : cur.eff.k === "stealAll" ? "누구의 점수를 전부 가져올까요?" : "누구의 점수 30%를 가져올까요?";
       app.innerHTML = wrap(sc, `<div class="card">
         <div class="hero">${L.icon(cur.eff.icon)}<h2 class="ttitle">${verb}</h2><p class="tsub">내 점수 ${Math.max(0, sc[me.sid] || 0)}점</p></div>
+        ${others.length ? cdBox("친구를 골라요") : ""}
         <div class="targets">${others.map(o => `<button class="tgt" data-id="${esc(o.id)}"><span>${esc(o.name)}</span><b>${o.score}점</b></button>`).join("") || `<p class="small">함께하는 친구가 없어요.</p>`}</div>
         ${others.length ? "" : `<button class="go" id="skip">다음 문제</button>`}</div>`);
-      app.querySelectorAll(".tgt").forEach(b => b.addEventListener("click", () => { app.querySelectorAll(".tgt").forEach(x => (x.disabled = true)); apply(cur, b.dataset.id); }));
+      const choose = id => { stopCountdown(); app.querySelectorAll(".tgt").forEach(x => (x.disabled = true)); apply(cur, id); };
+      app.querySelectorAll(".tgt").forEach(b => b.addEventListener("click", () => choose(b.dataset.id)));
       const sk = document.getElementById("skip"); if (sk) sk.addEventListener("click", () => apply(cur, null));
+      if (others.length) countdown("tgt-" + cur.k, () => choose(others[Math.floor(Math.random() * others.length)].id));
+      else countdown("tgt-" + cur.k, () => apply(cur, null));
     }
 
     async function apply(cur, target) {
