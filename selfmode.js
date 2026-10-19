@@ -57,6 +57,8 @@
     const cdBox = what => `<div class="cd" id="cd"><span><b>3</b>초 안에 ${what}. 안 고르면 무작위로 골라져요.</span><div class="cdbar"><i></i></div></div>`;
     const SEQ_KEY = "self-seq:" + me.code + ":" + me.sid;
     const n = Q.questions.length;
+    // 학생·시도마다 새 숫자 (문제 틀이 아닌 문항은 그대로)
+    const qFor = (qi, count) => L.instantiate(Q.templates[qi], Q.seed + ":" + me.sid + ":" + count + ":" + qi);
 
     // 내 문제 순서: 한 바퀴마다 새로 섞음
     function seqAt(i) {
@@ -130,7 +132,7 @@
     }
 
     function viewQuestion(sc, count) {
-      const qi = seqAt(count), q = Q.questions[qi];
+      const qi = seqAt(count), q = qFor(qi, count);
       draft = "";
       app.innerHTML = wrap(sc, `<div class="card">
         ${L.questionHead(Q, q, count + 1)}
@@ -144,16 +146,16 @@
 
     async function send(count, qi) {
       if (busy || draft === "" || !running()) return; busy = true;
-      const q = Q.questions[qi], ok = L.isCorrect(q, draft);
+      const q = qFor(qi, count), ok = L.isCorrect(q, draft);
       const ent = { qi, given: String(draft), correct: ok, pts: ok ? L.ptsOf(Q, q) : 0, at: B.now() };
       if (ok) ent.cards = Array.from({ length: CARDS }, () => L.drawEffect(R.settings && R.settings.effects));
-      if (!ok) showFb = { qi, given: draft };
+      if (!ok) showFb = { qi, count, given: draft };
       try { await B.set(base + "/log/" + me.sid + "/" + nkey(count), ent); } finally { busy = false; }
       render();
     }
 
     function viewFeedback(sc) {
-      const q = Q.questions[showFb.qi];
+      const q = qFor(showFb.qi, showFb.count);
       app.innerHTML = wrap(sc, `<div class="card">
         <div class="fb no"><div class="big">아쉬워요!</div>
           ${R.settings && R.settings.showAnswer === false ? "" : `<div class="sub">정답은 <b>${esc(L.showAns(q))}</b></div>`}

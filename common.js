@@ -41,7 +41,10 @@
     const Q = parts[0];
     const all = [].concat(...parts.map(p => p.questions.map(q => Object.assign({ _src: p.title }, q))));
     Q.allQuestions = all;
-    Q.questions = Array.isArray(room.order) ? room.order.map(i => all[i]).filter(Boolean) : all;
+    Q.templates = Array.isArray(room.order) ? room.order.map(i => all[i]).filter(Boolean) : all;
+    Q.seed = room.seed || String(room.createdAt || "") + (room.title || "");
+    // 문제 틀(gen)은 방마다 새 숫자로: ① 모드는 이 문제를 반 전체가 같이 봄
+    Q.questions = Q.templates.map((t, i) => (L.instantiate ? L.instantiate(t, Q.seed + ":" + i) : t));
     if (room.title) Q.title = room.title;
     if (parts.length > 1) Q.subtitle = parts.map(p => p.title).join(" · ");
     return Q;

@@ -2,11 +2,12 @@
 <link rel="stylesheet" href="../style.css"><style>.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px}.card{gap:10px;padding:14px}.qtext{font-size:1.1rem}.ans{background:#E2F5EC;border-radius:8px;padding:4px 8px;font-size:.9rem}</style></head>
 <body><div class="grid" id="g"></div>
 <script src="../common.js"></script>
+<script src="../generators.js"></script>
 <script>
 // 사용: tools/preview.html?f=파일이름.js  (여러 개는 쉼표)
 (async()=>{ const L=LQ; const fs=new URLSearchParams(location.search).get('f').split(',');
  const g=document.getElementById('g'); let html='';
  for (const f of fs){ const Q=await (async()=>{const r=await fetch('../quizzes/'+encodeURIComponent(f)); const Q=new Function(await r.text()+';return QUIZ')(); Q.set=Object.assign({points:10},Q.settings); return Q;})();
-  Q.questions.forEach((q,i)=>{ html+=`<div class="card">${L.questionHead(Q,q,i+1)}${L.answerArea(q, q.type==='ox'?q.answer:(q.type==='choice'?(Array.isArray(q.answer)?q.answer.join(','):String(q.answer)):''),{preview:true})}<div class="ans">정답: ${L.esc(L.showAns(q))}${q.explain?' · '+L.esc(q.explain):''}</div></div>`; }); }
+  Q.questions.forEach((t,i)=>{ const q=LQ.instantiate(t, 'preview'+location.hash+i); html+=`<div class="card">${L.questionHead(Q,q,i+1)}${L.answerArea(q, q.type==='ox'?q.answer:(q.type==='choice'?(Array.isArray(q.answer)?q.answer.join(','):String(q.answer)):''),{preview:true})}<div class="ans">정답: ${L.esc(L.showAns(q))}${q.explain?' · '+L.esc(q.explain):''}</div></div>`; }); }
  g.innerHTML=html; document.body.dataset.ready=1; })();
 </script></body></html>

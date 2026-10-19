@@ -72,7 +72,7 @@
         let c;
         for (let k = 0; k < 20; k++) { c = String(1000 + Math.floor(Math.random() * 9000)); if (!(await B.get("rooms/" + c + "/quiz"))) break; }
         const title = files.length > 1 ? `${Qs.title.replace(/ 보물 찾기$/, "")} 외 ${files.length - 1}개` : Qs.title;
-        const room = { quiz: files, title, order, mode, createdAt: B.now(), state: { phase: "lobby", q: 0 } };
+        const room = { quiz: files, title, order, mode, seed: L.rid(8), createdAt: B.now(), state: { phase: "lobby", q: 0 } };
         if (mode === "self") {
           const effects = {}; L.EFFECT_KEYS.forEach(k => (effects[k] = !!app.querySelector(`input[name=eff][value=${k}]:checked`)));
           if (!Object.values(effects).some(Boolean)) effects.add = true;
