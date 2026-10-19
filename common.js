@@ -118,7 +118,7 @@
       if (opts.preview) return `<div class="typed"><div class="numdisp empty">?</div>${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>`;
       const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
       return `<div class="typed"><div class="numdisp ${d === "" ? "empty" : ""}" id="nd">${d === "" ? "?" : L.esc(d)}</div>${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>
-        <div class="pad">${keys.map(k => `<button data-k="${k}">${k}</button>`).join("")}<button class="del" data-k="del" style="grid-column: span 5">지우기</button></div>`;
+        <div class="pad">${keys.map(k => `<button data-k="${k}">${k}</button>`).join("")}<button class="dotk" data-k="." aria-label="소수점">.</button><button class="del" data-k="del" style="grid-column: span 4">지우기</button></div>`;
     }
     if (opts.preview) return `<div class="typed"><input disabled placeholder="답을 적어요">${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>`;
     return `<div class="typed"><input id="sa" autocomplete="off" autocapitalize="off" spellcheck="false" value="${L.esc(d)}" placeholder="답을 적어요">${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>${q.hint ? `<p class="hint">${L.esc(q.hint)}</p>` : ""}`;
@@ -139,7 +139,10 @@
       const nd = area.querySelector("#nd");
       area.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => {
         let v = get() || "";
-        if (b.dataset.k === "del") v = v.slice(0, -1); else if (v.length < 4) v = (v === "0" ? "" : v) + b.dataset.k;
+        const k = b.dataset.k;
+        if (k === "del") v = v.slice(0, -1);
+        else if (k === ".") { if (!v.includes(".") && v.length < 7) v = (v || "0") + "."; }
+        else if (v.length < 7) v = (v === "0" ? "" : v) + k;
         nd.textContent = v === "" ? "?" : v; nd.classList.toggle("empty", v === ""); set(v);
       }));
     } else {

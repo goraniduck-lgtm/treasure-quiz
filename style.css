@@ -245,3 +245,5 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outl
 .seg label:has(input:checked) { border-color: var(--ink); background: var(--c1); }
 .seg input { accent-color: var(--ink); }
 .qpick label input[type=checkbox] { width: 22px; height: 22px; }
+
+.pad .dotk { font-size: 2.2rem; line-height: 1; background: var(--c2); }
