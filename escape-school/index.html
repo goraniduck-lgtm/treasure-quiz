@@ -134,7 +134,7 @@ h1{font-family:var(--f-ui);font-weight:400;font-size:clamp(2.6rem,9vw,4.2rem);li
 .dx.lock{border-style:dashed;background:transparent}
 .dx.lock b{color:#9A8A70}
 .badge{align-self:flex-start;font-family:var(--f-ui);font-size:.8rem;border-radius:999px;padding:0 9px;color:#fff}
-.b-esc{background:#4E8F6C}.b-fail{background:#A0603F}.b-weird{background:#7F5AA8}.b-secret{background:#2F3F6E}
+.b-esc{background:#4E8F6C}.b-fail{background:#A0603F}.b-weird{background:#7F5AA8}.b-secret{background:#2F3F6E}.b-happy{background:#C77B2E}.b-true{background:#B8902A;box-shadow:0 0 0 2px #F1D27A}
 .qrbig{background:#fff;border-radius:22px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:12px;width:min(560px,100%);margin:auto;color:#222}
 .qrbig svg{width:min(70vmin,460px);height:auto;max-width:100%}
 .qrbig p{margin:0;font-family:var(--f-ui);font-size:1.1rem;word-break:break-all;text-align:center}
@@ -211,7 +211,7 @@ function quadSVG(){
 }
 /* L 모양 깃발: 3×3 칸, 꼭대기 칸은 붉은색 */
 function shapeSVG(tf, size){
-  const T = {id:"", r90:"rotate(90 45 45)", rm90:"rotate(-90 45 45)", r180:"rotate(180 45 45)", fx:"translate(90 0) scale(-1 1)"}[tf];
+  const T = {id:"", r90:"rotate(90 45 45)", rm90:"rotate(-90 45 45)", r180:"rotate(180 45 45)", fx:"translate(90 0) scale(-1 1)", fy:"translate(0 90) scale(1 -1)"}[tf];
   const cells=[[1,0,"#C2493B"],[1,1,"#3F5596"],[1,2,"#3F5596"],[2,2,"#3F5596"]];
   let grid=""; for(let i=0;i<=3;i++){ grid+=`<line x1="${i*30}" y1="0" x2="${i*30}" y2="90" stroke="#C9B48A" stroke-width="1"/><line x1="0" y1="${i*30}" x2="90" y2="${i*30}" stroke="#C9B48A" stroke-width="1"/>`; }
   const g = cells.map(([x,y,c])=>`<rect x="${x*30+1.5}" y="${y*30+1.5}" width="27" height="27" rx="4" fill="${c}"/>`).join("");
@@ -467,9 +467,35 @@ const ENDINGS = {
  E12:{n:12, name:"규칙서의 새 주인", type:"secret", hint:"모든 문제를 처음 한 번에 맞히면",
    text:s=>["정문을 나서는 순간, 규칙서가 저절로 펼쳐졌다. 줄 그은 규칙 옆 연필 글씨가… 내 글씨체다.","그제야 알았다. 먼저 나간 아이는 나였다.","나는 마지막 장에 적는다. '이 규칙서를 주운 전학생에게.' 그리고 규칙서를 신발장 위에 살며시 올려 두었다."]},
  E13:{n:13, name:"거꾸로 학교", type:"secret", hint:"마지막 문 앞에서 아주 엉뚱한 선택을 하면",
-   text:s=>["규칙서를 거꾸로 읽자 학교가 뒤집혔다. 교문은 하늘에, 운동장은 천장에 붙었다.","교장실 의자에 앉아 있는 사람은… 나다. 명패에 '교장 선생님'이라고 적혀 있다.","첫 번째 새 규칙을 방송한다. \"오늘부터 숙제는 선생님들이 합니다.\""]}
+   text:s=>["규칙서를 거꾸로 읽자 학교가 뒤집혔다. 교문은 하늘에, 운동장은 천장에 붙었다.","교장실 의자에 앉아 있는 사람은… 나다. 명패에 '교장 선생님'이라고 적혀 있다.","첫 번째 새 규칙을 방송한다. \"오늘부터 숙제는 선생님들이 합니다.\""]},
+ E14:{n:14, name:"달무리가 걷힌 아침", type:"true", hint:"탈출 직전 학교로 돌아가 심화 봉인 6개를 모두 풀면",
+   text:s=>["여섯 번째 봉인이 풀리자 찢겨 나간 규칙서의 마지막 장이 날아와 제자리에 붙었다.","마지막 규칙: '이 학교의 밤은, 규칙을 끝까지 이해한 아이가 나타나면 끝난다.'","달 둘레의 고리가 유리처럼 부서지고, 이 학교에 처음으로 해가 뜬다. 숫자가 된 아이, 반장이 된 아이, 화단의 꽃이 된 아이들이 하나둘 원래 모습으로 돌아온다.","지우가 울먹인다. \"나, 정말 삼 년 동안 여기 있었어. 이제 집에 갈 수 있어.\"","다음 날 아침, 선생님이 말한다. \"오늘은 전학생이 여러 명 왔어요.\" 교실을 둘러보니 모두 내 친구들이다."]},
+ E15:{n:15, name:"모두 함께 하교", type:"happy", hint:"심화 봉인 6개 중 5개를 풀면",
+   text:s=>["봉인 하나는 끝내 풀리지 않았다. 그래도 다섯 개의 봉인으로 학교에 갇혀 있던 아이들을 모두 깨웠다.","달무리는 옅어졌지만 완전히 사라지지는 않았다. 아이들과 손을 잡고 노을 진 교문을 나선다.","지우가 웃는다. \"마지막 하나는 다음에 같이 풀자. 이제 우리 혼자가 아니잖아.\"","뒤돌아보니 학교 창문마다 불이 꺼지고, 딱 한 창문에만 희미한 달빛이 남아 있다."]}
 };
-const TYPE_LABEL = {esc:["탈출 결말","b-esc"], fail:["실패 결말","b-fail"], weird:["동화 결말","b-weird"], secret:["비밀 결말","b-secret"]};
+const END_TOTAL = Object.keys(ENDINGS).length;
+const TYPE_LABEL = {esc:["탈출 결말","b-esc"], fail:["실패 결말","b-fail"], weird:["동화 결말","b-weird"], secret:["비밀 결말","b-secret"], happy:["행복한 결말","b-happy"], true:["진 결말","b-true"]};
+const ESCAPES = ["E1","E2","E3","E4","E6","E11","E12"];
+const HARD = [
+ {t:"첫째 봉인 · 큰 수", q:"어떤 수에서 100억씩 5번 뛰어 세었더니 3조 2000억이 되었다. 어떤 수는?",
+  opts:[["3조 1500억","c"],["2조 7000억","w"],["3조 1950억","w"],["3조 2500억","w"]],
+  ex:"100억씩 5번이면 500억. 거꾸로 빼면 3조 2000억 − 500억 = 3조 1500억"},
+ {t:"둘째 봉인 · 각도", q:"시계가 정확히 4시를 가리킬 때, 시침과 분침이 이루는 작은 쪽의 각은 몇 도?",
+  opts:[["120°","c"],["240°","w"],["90°","w"],["40°","w"]],
+  ex:"시계 숫자 한 칸은 360°÷12=30°. 12에서 4까지 4칸이니까 30°×4=120°"},
+ {t:"셋째 봉인 · 곱셈과 나눗셈", q:"어떤 수를 24로 나누어야 하는데 잘못하여 42로 나누었더니 몫이 15, 나머지가 6이었다. 바르게 계산하면 몫과 나머지는?",
+  opts:[["몫 26, 나머지 12","c"],["몫 15, 나머지 6","w"],["몫 25, 나머지 36","w"],["몫 26, 나머지 2","w"]],
+  ex:"어떤 수 = 42×15+6 = 636. 636÷24 → 24×26=624, 636−624=12. 나머지 36은 24보다 커서 안 돼!"},
+ {t:"넷째 봉인 · 평면도형의 이동", q:"처음 모양을 오른쪽으로 뒤집은 다음, 시계 방향으로 180° 돌린 모양은?", vis:"shape",
+  opts:[["가","c","fy"],["나","w","fx"],["다","w","r180"],["라","w","rm90"]],
+  ex:"오른쪽으로 뒤집은 뒤 180° 돌리면, 처음 모양을 위쪽으로 뒤집은 것과 같아져. 빨간 칸이 아래로!"},
+ {t:"다섯째 봉인 · 막대그래프", q:"세로 눈금 한 칸이 5명인 막대그래프에서 가을 막대가 겨울 막대보다 3칸 더 길다. 가을과 겨울을 좋아하는 학생이 모두 65명이면, 가을을 좋아하는 학생은 몇 명?",
+  opts:[["40명","c"],["25명","w"],["35명","w"],["15명","w"]],
+  ex:"3칸 차이 = 5×3 = 15명. 65−15=50, 50÷2=25(겨울). 가을은 25+15=40명"},
+ {t:"마지막 봉인 · 규칙 찾기", q:"1, 3, 7, 15, 31, □  — □에 알맞은 수는?",
+  opts:[["63","c"],["47","w"],["62","w"],["46","w"]],
+  ex:"앞의 수에 2를 곱하고 1을 더해: 31×2+1=63. 차이도 2, 4, 8, 16, 32로 두 배씩 커져."}
+];
 const ROUTE_TEXT = {
   gate:{name:"정문 길", lines:["하람 언니의 탈출 지도를 펼치자 정문으로 가는 길이 환하게 빛난다.","\"정답을 잘 찾아온 덕분이야. 이 길이면 금방 나갈 수 있어!\"","1층 급식실을 지나 정문 쪽으로 향한다."]},
   roof:{name:"옥상 길", lines:["탈출 지도의 정문 길이 희미하게 지워져 있다.","대신 옥상으로 올라가는 계단에 불이 하나씩 켜진다. 옥상에서 누군가 손전등을 흔든다.","돌아가는 길이지만, 아직 나갈 수 있다."]},
@@ -486,8 +512,10 @@ function hud(){
   const sc = SCENES[Math.min(S.i,9)];
   const place = typeof sc.place==="string" ? sc.place : sc.place[S.route||"gate"];
   const dots = [0,1,2].map(k=>`<i class="${k<S.weird?'on':''}"></i>`).join("");
+  const where = S.hard ? `심화 봉인 ${Math.min(S.hard.i+1,6)} / 6 · 틀림 ${S.hard.wrong}/2`
+    : `${S.i+1} / 10 · ${esc(place)}${S.route?` · ${ROUTE_TEXT[S.route].name}`:""}`;
   return `<div class="hud" role="status">
-    <span class="where">${S.i+1} / 10 · ${esc(place)}${S.route?` · ${ROUTE_TEXT[S.route].name}`:""}</span>
+    <span class="where">${where}</span>
     <span class="stat" title="열쇠 조각"><span class="keyico" aria-hidden="true"></span>열쇠 ${S.keys}/20</span>
     <span class="stat" title="이상해진 정도">동화 <span class="dots" aria-label="${S.weird}/3">${dots}</span></span>
     <button class="bookbtn ${S.newCh?'new':''}" type="button" data-act="book">규칙서</button>
@@ -521,6 +549,9 @@ function render(){
   if (S.mode==="retry") return retryScreen();
   if (S.mode==="retryResult") return retryResultScreen();
   if (S.mode==="ending") return endingScreen();
+  if (S.mode==="gateChoice") return gateChoiceScreen();
+  if (S.mode==="hard") return hardScreen();
+  if (S.mode==="hardResult") return hardResultScreen();
 }
 function titleScreen(){
   const got = store.get(DEX, []);
@@ -543,7 +574,7 @@ function titleScreen(){
       <li><span class="chip x">엉뚱</span><span>이상한 걸 고르면 나도 이상해져요. 세 번이면… 학교의 일부가 돼요.</span></li>
     </ul>
     <div class="row">
-      <button class="next ghost" type="button" data-act="dex">결말 도감 ${got.length}/13</button>
+      <button class="next ghost" type="button" data-act="dex">결말 도감 ${got.length}/${END_TOTAL}</button>
       ${canResume?`<button class="next ghost" type="button" data-act="resume">이어 하기</button>`:""}
       <button class="next big" type="button" data-act="start">학교로 들어가기</button>
     </div>
@@ -622,7 +653,7 @@ function endingScreen(){
   const reviews = S.log.filter(l=>!l.ok);
   $app.innerHTML = `<div class="card">
     <div class="endhead">
-      <span class="endno">결말 ${e.n} / 13 ${S.isNew?'<span class="newend">· 새 결말 발견!</span>':''}</span>
+      <span class="endno">결말 ${e.n} / ${END_TOTAL} ${S.isNew?'<span class="newend">· 새 결말 발견!</span>':''}</span>
       <span class="badge ${t[1]}">${t[0]}</span>
       <h2 class="endname">${esc(e.name)}</h2>
     </div>
@@ -632,6 +663,7 @@ function endingScreen(){
       <div class="st"><b>${S.retryOk}</b><span>다시 풀어 맞힌 문제</span></div>
       <div class="st"><b>${S.keys}/20</b><span>모은 열쇠 조각</span></div>
       <div class="st"><b>${S.weird}/3</b><span>동화 정도</span></div>
+      ${S.hardScore!=null?`<div class="st"><b>${S.hardScore}/6</b><span>푼 심화 봉인</span></div>`:""}
     </div>
     <p style="margin:0">함께한 사람: ${S.allies.length?esc(S.allies.join(", ")):"아무도 없었다"}</p>
     ${reviews.length?`<h3 style="font-family:var(--f-ui);font-weight:400;margin:6px 0 0">다시 볼 문제</h3><div class="review">${reviews.map(l=>`<div class="rv"><span class="rq">${esc(l.q)}</span><span class="rx">내 답: ${esc(l.pick)}</span><span class="ra">정답: ${esc(l.ans)}</span><span>${esc(l.ex)}</span></div>`).join("")}</div>`:`<p style="margin:0;color:var(--ok);font-family:var(--f-ui)">틀린 문제가 없어요!</p>`}
@@ -674,7 +706,7 @@ function openDex(){
   }).join("");
   $lay.innerHTML = `<div class="book" role="dialog" aria-modal="true" aria-label="결말 도감">
     <button class="close" type="button" data-act="closeLay">닫기</button>
-    <h2>결말 도감</h2><span class="stamp">${got.length} / 13 발견</span>
+    <h2>결말 도감</h2><span class="stamp">${got.length} / ${END_TOTAL} 발견</span>
     <div class="dex">${cards}</div>
     <p class="sign" style="font-size:1.4rem">이 태블릿에서 본 결말만 기록돼요.</p>
   </div>`;
@@ -690,6 +722,61 @@ function openQR(){
 }
 
 /* ---------- 진행 ---------- */
+function endOrChallenge(){
+  const base = finalEnding();
+  if (ESCAPES.includes(base)){ S.base = base; S.mode="gateChoice"; render(); }
+  else finish(base);
+}
+function gateChoiceScreen(){
+  $app.innerHTML = `${hud()}<div class="card">
+    <div class="place">마지막 갈림길</div>
+    ${storyHTML(["문이 열렸다. 바깥 공기가 느껴진다. 한 발만 내디디면 집이다.",
+      "그때 등 뒤에서 누군가 우는 소리가 들린다. 학교에 남은 아이들이다. 숫자가 된 아이, 꽃이 된 아이, 반장이 된 아이….",
+      "바람에 찢긴 종이 한 장이 날아온다. 규칙서의 마지막 장이다. <span class=\"say\">\"여섯 개의 봉인을 풀면, 이 학교의 밤이 끝난다.\"</span>",
+      "봉인 문제는 지금까지보다 훨씬 어렵다. 다시 풀 기회도 없다. <b>두 번 틀리면</b> 봉인이 닫히고, 그대로 문 밖으로 밀려난다."])}
+    <div class="row">
+      <button class="next ghost" type="button" data-act="leave">그냥 문 밖으로 나간다</button>
+      <button class="next" type="button" data-act="challenge">학교로 돌아간다 (심화 6문제)</button>
+    </div>
+  </div>`;
+  window.scrollTo(0,0);
+}
+function hardScreen(){
+  const h = HARD[S.hard.i];
+  $app.innerHTML = `${hud()}<div class="card">
+    <div class="place">${esc(h.t)}</div>
+    ${h.vis?visHTML(h.vis):""}
+    <div class="q">${esc(h.q)}</div>
+    ${optsHTML(h.opts, h.vis==="shape")}
+  </div>`;
+  window.scrollTo(0,0);
+}
+function hardResultScreen(){
+  const h = HARD[S.hard.i], ok = S.hard.last==="c";
+  const shape = typeof h.opts[0][2]==="string";
+  const ans = shape ? `<span class="ov" style="align-self:flex-start;background:var(--paper);border-radius:10px;padding:6px">${shapeSVG(h.opts[0][2],110)}</span>` : `<b>${esc(h.opts[0][0])}</b>`;
+  const closed = S.hard.wrong>=2, last = S.hard.i>=HARD.length-1;
+  let btn;
+  if (closed) btn = `<button class="next" type="button" data-act="hardEnd">문 밖으로 밀려난다</button>`;
+  else if (last) btn = `<button class="next" type="button" data-act="hardEnd">봉인이 열린다</button>`;
+  else btn = `<button class="next" type="button" data-act="hardNext">다음 봉인으로</button>`;
+  $app.innerHTML = `${hud()}<div class="card">
+    <div class="place">${esc(h.t)}</div>
+    <div class="q">${esc(h.q)}</div>
+    <div class="res ${ok?'ok':'bad'}"><h3>${ok?"봉인이 풀렸다!":(closed?"두 번째 봉인이 깨졌다":"봉인에 금이 갔다")}</h3>
+      <p>${ok?"규칙서 마지막 장의 글자 하나가 또렷해진다.":(closed?"학교가 크게 흔들리며 봉인이 모두 닫힌다. 아이들을 다 구하지는 못했다. 서둘러 문으로 달려간다.":"한 번 더 틀리면 봉인이 닫힌다. 조심하자.")}</p>
+      ${ok?"":`<p>정답: ${ans}</p>`}</div>
+    <div class="hint"><b>풀이</b><span class="hand">${esc(h.ex)}</span></div>
+    <div class="row">${btn}</div>
+  </div>`;
+  window.scrollTo(0,0);
+}
+function hardEnd(){
+  const w = S.hard.wrong;
+  S.hardScore = S.hard.ok;
+  S.hard = null;
+  finish(w===0 ? "E14" : w===1 ? "E15" : S.base);
+}
 function finish(id){
   S.mode="ending"; S.ending=id;
   const got = store.get(DEX, []);
@@ -706,7 +793,7 @@ function finalEnding(){
   return S.keys>=9 ? "E6" : "E7";
 }
 function goNext(){
-  if (S.i>=9) return finish(finalEnding());
+  if (S.i>=9) return endOrChallenge();
   S.i++;
   const ch = SCENES[S.i].ch+1;
   if (ch>S.ch){ S.ch=ch; S.newCh=true; }
@@ -726,7 +813,7 @@ function pick(k){
       S.keys+=2; S.first++;
       if (S.i<9) S.allies.push(ALLY_NAMES[S.i]);
       S.log.push({q:sc.q, ok:true});
-      if (S.i===9) return finish(finalEnding());
+      if (S.i===9) return endOrChallenge();
       S.mode="result";
     } else if (kind==="w"){
       S.log.push({q:sc.q, ok:false, pick:S.sub.label, ans:typeof o[2]==="string"?"시계 방향으로 90° 돌린 모양 (빨간 칸이 오른쪽)":sc.opts[0][0], ex:sc.hint[1]});
@@ -738,6 +825,12 @@ function pick(k){
       if (S.weird>=3) return finish(S.i<=2 ? "E8" : S.i<=6 ? "E9" : "E10");
       S.mode="result";
     }
+  } else if (S.mode==="hard"){
+    const h = HARD[S.hard.i], o = h.opts[k];
+    S.hard.last = o[1];
+    if (o[1]!=="c"){ S.hard.wrong++; S.log.push({q:h.q, ok:false, pick: typeof o[2]==="string" ? "고른 그림" : o[0], ans: typeof o[2]==="string" ? "위쪽으로 뒤집은 것과 같은 모양 (빨간 칸이 아래)" : h.opts[0][0], ex:h.ex}); }
+    else S.hard.ok++;
+    S.mode="hardResult";
   } else if (S.mode==="retry"){
     const o = sc.retry.opts[k];
     S.sub.rkind = o[1];
@@ -762,6 +855,10 @@ document.addEventListener("click", e=>{
   else if (act==="toScene"){ S.mode="scene"; render(); }
   else if (act==="toRetry"){ S.mode="retry"; render(); }
   else if (act==="nextScene") goNext();
+  else if (act==="leave") finish(S.base);
+  else if (act==="challenge"){ S.hard={i:0, wrong:0, ok:0, last:null}; S.mode="hard"; render(); }
+  else if (act==="hardNext"){ S.hard.i++; S.mode="hard"; render(); }
+  else if (act==="hardEnd") hardEnd();
 });
 $lay.addEventListener("click", e=>{ if(e.target===$lay) $lay.hidden=true; });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") $lay.hidden=true; });
