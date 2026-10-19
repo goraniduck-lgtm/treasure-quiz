@@ -348,8 +348,163 @@
     return num(`${ys.map(fmt).join(" + ")}을(를) 계산해 보세요.`, ys.reduce((a, x) => a + x, 0));
   };
 
+  // =====================================================================
+  // 4단원 사각형 (길이·각도가 바뀌는 문항)
+  // =====================================================================
+  const f1 = v => Math.round(v * 10) / 10;
+  const ln = (x1, y1, x2, y2, st) => `<line x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}"${st ? ` style="${st}"` : ""}/>`;
+  const dash = (x1, y1, x2, y2) => ln(x1, y1, x2, y2, "stroke-dasharray:6 5;stroke-width:2");
+  const poly = pts => `<polygon points="${pts.map(p => f1(p[0]) + "," + f1(p[1])).join(" ")}"/>`;
+  const ra = (x, y, dx, dy, sz = 10) => `<path d="M ${x + dx * sz} ${y} L ${x + dx * sz} ${y + dy * sz} L ${x} ${y + dy * sz}" style="stroke-width:2"/>`;
+  const vlab = (pts, names, off = 16) => {
+    const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    return pts.map((p, i) => { const dx = p[0] - cx, dy = p[1] - cy, d = Math.hypot(dx, dy) || 1; return tx(f1(p[0] + (dx / d) * off), f1(p[1] + (dy / d) * off + 6), names[i]); }).join("");
+  };
+  const gridBg = (w, h, g) => `<defs><pattern id="gg${w}${h}" width="${g}" height="${g}" patternUnits="userSpaceOnUse"><path class="gr" d="M ${g} 0 L 0 0 0 ${g}"/></pattern></defs><rect class="bgr" width="${w}" height="${h}" fill="url(#gg${w}${h})" stroke="none"/>`;
+  const rad = d => (d * Math.PI) / 180;
+  const TRIPLES = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [4, 3, 5], [8, 6, 10], [9, 12, 15], [12, 5, 13]];   // [높이, 가로로 비낀 길이, 빗변]
+
+  /** 평행사변형 그림: 밑변 B·옆변 S(px), ㄴ의 각 a도 */
+  function pgram(a, B = 200, S = 110) {
+    S = Math.min(S, 150);
+    const x0 = 50, dx = S * Math.cos(rad(a)), dy = S * Math.sin(rad(a)), y0 = 44 + dy;
+    const P = [[x0 + dx, y0 - dy], [x0, y0], [x0 + B, y0], [x0 + B + dx, y0 - dy]];   // ㄱ ㄴ ㄷ ㄹ
+    const w = Math.max(...P.map(p => p[0])) + 50;
+    return { P, w, h: y0 + 40, shape: poly(P) + vlab(P, ["ㄱ", "ㄴ", "ㄷ", "ㄹ"]) };
+  }
+  /** 마름모 그림: ㄴ(왼쪽 꼭짓점)의 각 a도, 한 변 s px */
+  function rhomb(a, s = 120) {
+    const p = s * Math.cos(rad(a / 2)), q = s * Math.sin(rad(a / 2)), cx = 40 + p, cy = 30 + q;
+    const P = [[cx, cy - q], [cx - p, cy], [cx, cy + q], [cx + p, cy]];   // ㄱ(위) ㄴ(왼) ㄷ(아래) ㄹ(오른)
+    return { P, cx, cy, w: cx + p + 40, h: cy + q + 34, shape: poly(P) + vlab(P, ["ㄱ", "ㄴ", "ㄷ", "ㄹ"]) };
+  }
+  const notRight = (R, lo, hi) => { let a; do { a = R.int(lo / 5, hi / 5) * 5; } while (a === 90); return a; };
+
+  G["geo.perpAngle"] = R => {   // 수선 + 비스듬한 반직선, ㉠ = 90 - x
+    const x = R.int(4, 14) * 5, ox = 140, oy = 150, L2 = 150;
+    const ex = ox + L2 * Math.cos(rad(x)), ey = oy - L2 * Math.sin(rad(x)), mx = ox + 52 * Math.cos(rad((x + 90) / 2)), my = oy - 52 * Math.sin(rad((x + 90) / 2));
+    const lx = ox + 72 * Math.cos(rad(x / 2)), ly = oy - 72 * Math.sin(rad(x / 2));
+    const draw = ln(20, oy, 300, oy) + tx(292, oy - 10, "가") + ln(ox, 15, ox, 180) + tx(ox + 16, 26, "나") + ra(ox, oy, -1, -1) + ln(ox, oy, ex, ey) + tx(f1(lx), f1(ly + 6), `${x}°`, 16) + tx(f1(mx), f1(my + 6), "㉠", 18);
+    return cnt("직선 나는 직선 가에 대한 수선입니다.\n㉠의 각도는 몇 도인가요?", 90 - x, "°", { figure: { w: 320, h: 190, draw } });
+  };
+  G["geo.gridDist"] = R => {   // 모눈 1칸 = 1 cm
+    const n = R.int(2, 6), vertical = R.chance(0.35), g = 20;
+    if (vertical) { const x = R.int(1, 15 - n) * g; return cnt("모눈 한 칸의 길이는 1 cm입니다.\n평행선 사이의 거리는 몇 cm인가요?", n, "cm", { figure: { w: 360, h: 160, draw: gridBg(360, 160, g) + ln(x, 0, x, 160) + ln(x + n * g, 0, x + n * g, 160) } }); }
+    const y = R.int(1, 7 - n) * g;
+    return cnt("모눈 한 칸의 길이는 1 cm입니다.\n평행선 사이의 거리는 몇 cm인가요?", n, "cm", { figure: { w: 360, h: 160, draw: gridBg(360, 160, g) + ln(0, y, 360, y) + ln(0, y + n * g, 360, y + n * g) } });
+  };
+  G["geo.rectDist"] = R => {
+    const w = R.int(5, 9), h = R.int(2, Math.min(5, w - 2)), sc = 220 / w, H = h * sc, P = [[60, 40], [60, 40 + H], [280, 40 + H], [280, 40]];
+    const askTB = R.chance(0.5);
+    const draw = poly(P) + vlab(P, ["ㄱ", "ㄴ", "ㄷ", "ㄹ"]) + tx(170, 30, `${w} cm`, 17) + tx(30, f1(40 + H / 2 + 6), `${h} cm`, 17);
+    return cnt(`직사각형에서 변 ${askTB ? "ㄱㄹ과 변 ㄴㄷ" : "ㄱㄴ과 변 ㄹㄷ"} 사이의 거리는 몇 cm인가요?`, askTB ? h : w, "cm", { figure: { w: 340, h: 40 + H + 50, draw } });
+  };
+  G["geo.parSum"] = (R, o) => {
+    const k = o.lines || R.pick([3, 4]), names = ["가", "나", "다", "라"].slice(0, k), gaps = Array.from({ length: k - 1 }, () => R.int(2, 7));
+    const tot = gaps.reduce((a, b) => a + b, 0), sc = 180 / tot; let y = 20, draw = "";
+    const ys = [y]; gaps.forEach(gp => ys.push((y += gp * sc)));
+    ys.forEach((yy, i) => (draw += ln(40, yy, 340, yy) + tx(24, f1(yy + 6), names[i])));
+    gaps.forEach((gp, i) => (draw += dash(220, ys[i], 220, ys[i + 1]) + tx(258, f1((ys[i] + ys[i + 1]) / 2 + 6), `${gp} cm`, 16)));
+    const a = 0, b = k - 1;
+    return cnt(`직선 ${names.join(", ")}는 서로 평행합니다.\n직선 ${names[a]}와 직선 ${names[b]} 사이의 거리는 몇 cm인가요?`, tot, "cm", { figure: { w: 360, h: ys[k - 1] + 24, draw } });
+  };
+  G["geo.slantDist"] = R => {   // 비스듬한 선분 c cm, 수선 h cm → 거리 h
+    const [h, d, c] = R.pick(TRIPLES), sc = 90 / h, y1 = 40, y2 = 40 + h * sc, x1 = R.int(50, 90), x2 = x1 + d * sc;
+    if (x2 > 300) return G["geo.slantDist"](R);
+    const px = Math.min(330, x2 + 70);
+    const draw = ln(20, y1, 380, y1) + tx(16, y1 - 10, "가") + ln(20, y2, 380, y2) + tx(16, y2 + 20, "나") + ln(x1, y1, x2, y2) + tx(f1((x1 + x2) / 2 - 22), f1((y1 + y2) / 2 + 8), `${c} cm`, 16) + ln(px, y1, px, y2) + ra(px, y2, 1, -1) + tx(px + 30, f1((y1 + y2) / 2 + 6), `${h} cm`, 16);
+    return cnt("직선 가와 직선 나는 서로 평행합니다.\n평행선 사이의 거리는 몇 cm인가요?", h, "cm", { figure: { w: 380, h: y2 + 34, draw } });
+  };
+  G["geo.pgramHeight"] = R => {
+    const [h, d, c] = R.pick(TRIPLES), base = R.int(Math.max(c, 6), 12), sc = 100 / h;
+    const x0 = 50, y0 = 140, P = [[x0, y0], [x0 + base * sc, y0], [x0 + base * sc + d * sc, y0 - h * sc], [x0 + d * sc, y0 - h * sc]];
+    if (P[2][0] > 420) return G["geo.pgramHeight"](R);
+    const hx = P[3][0];
+    const draw = poly(P) + dash(hx, y0 - h * sc, hx, y0) + ra(hx, y0, 1, -1) + tx(f1((P[0][0] + P[3][0]) / 2 - 26), f1(y0 - (h * sc) / 2), `${c} cm`, 16) + tx(hx + 28, f1(y0 - (h * sc) / 2 + 10), `${h} cm`, 16) + tx(f1((P[0][0] + P[1][0]) / 2), y0 + 22, `${base} cm`, 16);
+    return cnt("평행사변형에서 위아래 두 변 사이의 거리는 몇 cm인가요?", h, "cm", { figure: { w: P[2][0] + 30, h: 170, draw } });
+  };
+  G["geo.pgramSide"] = R => {
+    const a = R.int(5, 12), b = R.int(3, a - 1), g = pgram(notRight(R, 50, 75), 200, 200 * b / a);
+    const askTop = R.chance(0.5), P = g.P;
+    const draw = g.shape + tx(f1((P[0][0] + P[3][0]) / 2), f1(P[0][1] - 12), `${a} cm`, 17) + tx(f1((P[0][0] + P[1][0]) / 2 - 28), f1((P[0][1] + P[1][1]) / 2 + 6), `${b} cm`, 17);
+    return cnt(`평행사변형 ㄱㄴㄷㄹ에서 변 ${askTop ? "ㄴㄷ" : "ㄹㄷ"}의 길이는 몇 cm인가요?`, askTop ? a : b, "cm", { figure: { w: g.w, h: g.h, draw } });
+  };
+  G["geo.pgramAngle"] = (R, o) => {
+    const a = notRight(R, 45, 80), g = pgram(a), P = g.P, kind = o.kind || R.pick(["adj", "opp"]);
+    const draw = g.shape + tx(f1(P[1][0] + 40), f1(P[1][1] - 8), `${a}°`, 16);
+    return kind === "adj"
+      ? cnt(`평행사변형 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 ${a}°입니다.\n각 ㄴㄱㄹ은 몇 도인가요?`, 180 - a, "°", { figure: { w: g.w, h: g.h, draw } })
+      : cnt(`평행사변형 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 ${a}°입니다.\n각 ㄱㄹㄷ은 몇 도인가요?`, a, "°", { figure: { w: g.w, h: g.h, draw } });
+  };
+  G["geo.adjAngle"] = R => { const a = notRight(R, 35, 145); return cnt(`평행사변형에서 한 각이 ${a}°입니다.\n이 각과 이웃한 각은 몇 도인가요?`, 180 - a, "°"); };
+  G["geo.pgramPerim"] = (R, o) => {
+    const a = R.int(5, 12), b = R.int(3, a - 1), g = pgram(notRight(R, 50, 75), 200, 200 * b / a), P = g.P;
+    if (o.inverse) {
+      const draw = g.shape + tx(f1((P[0][0] + P[1][0]) / 2 - 28), f1((P[0][1] + P[1][1]) / 2 + 6), `${b} cm`, 17);
+      return cnt(`평행사변형 ㄱㄴㄷㄹ의 네 변의 길이의 합은 ${2 * (a + b)} cm입니다.\n변 ㄱㄴ이 ${b} cm일 때, 변 ㄴㄷ은 몇 cm인가요?`, a, "cm", { figure: { w: g.w, h: g.h, draw } });
+    }
+    const draw = g.shape + tx(f1((P[0][0] + P[3][0]) / 2), f1(P[0][1] - 12), `${a} cm`, 17) + tx(f1((P[0][0] + P[1][0]) / 2 - 28), f1((P[0][1] + P[1][1]) / 2 + 6), `${b} cm`, 17);
+    return cnt("평행사변형의 네 변의 길이의 합은 몇 cm인가요?", 2 * (a + b), "cm", { figure: { w: g.w, h: g.h, draw } });
+  };
+  G["geo.rhombAngle"] = R => {
+    const a = notRight(R, 55, 110), g = rhomb(a), P = g.P;
+    const draw = g.shape + tx(f1(P[1][0] + 34), f1(P[1][1] + 6), `${a}°`, 16);
+    return cnt(`마름모 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 ${a}°입니다.\n각 ㄴㄱㄹ은 몇 도인가요?`, 180 - a, "°", { figure: { w: g.w, h: g.h, draw } });
+  };
+  G["geo.rhombPerim"] = (R, o) => {
+    const s = R.int(3, 15);
+    if (o.inverse) return cnt(`마름모의 네 변의 길이의 합이 ${4 * s} cm입니다.\n한 변의 길이는 몇 cm인가요?`, s, "cm");
+    const g = rhomb(notRight(R, 60, 110)), P = g.P;
+    return cnt("마름모의 네 변의 길이의 합은 몇 cm인가요?", 4 * s, "cm", { figure: { w: g.w, h: g.h, draw: poly(P) + tx(f1((P[0][0] + P[1][0]) / 2 - 26), f1((P[0][1] + P[1][1]) / 2), `${s} cm`, 17) } });
+  };
+  G["geo.rhombHalf"] = R => {
+    const d = R.int(3, 12) * 2, g = rhomb(notRight(R, 60, 110)), P = g.P, which = R.chance(0.5);
+    const draw = g.shape + ln(P[0][0], P[0][1], P[2][0], P[2][1]) + ln(P[1][0], P[1][1], P[3][0], P[3][1]) + tx(f1(g.cx + 14), f1(g.cy + 22), "ㅇ", 17);
+    return which
+      ? cnt(`마름모에서 선분 ㄱㄷ의 길이는 ${d} cm입니다.\n선분 ㄱㅇ은 몇 cm인가요?`, d / 2, "cm", { figure: { w: g.w, h: g.h, draw }, explain: "마주 보는 꼭짓점끼리 이은 선분은 서로를 똑같이 둘로 나눠요." })
+      : cnt(`마름모에서 선분 ㄴㅇ의 길이는 ${d / 2} cm입니다.\n선분 ㄴㄹ은 몇 cm인가요?`, d, "cm", { figure: { w: g.w, h: g.h, draw }, explain: "마주 보는 꼭짓점끼리 이은 선분은 서로를 똑같이 둘로 나눠요." });
+  };
+  G["geo.squarePerim"] = R => { const s = R.int(3, 15); return R.chance(0.5) ? cnt(`정사각형의 네 변의 길이의 합이 ${4 * s} cm입니다.\n한 변의 길이는 몇 cm인가요?`, s, "cm") : cnt(`정사각형의 한 변의 길이가 ${s} cm입니다.\n네 변의 길이의 합은 몇 cm인가요?`, 4 * s, "cm"); };
+
+  /** 여러 사각형 분류: 가~마 도형을 무작위로 그리고 ask 종류를 모두 고르기 */
+  const KINDS = {
+    square: ["square", "rect", "rhomb", "para", "trap"], rect: ["rect", "para", "trap"], rhomb: ["rhomb", "para", "trap"],
+    para: ["para", "trap"], trap: ["trap"], irr: [],
+  };
+  const KNAME = { square: "정사각형", rect: "직사각형", rhomb: "마름모", para: "평행사변형", trap: "사다리꼴" };
+  function drawKind(R, k, cx) {      // 칸 가운데 cx, 칸 너비 120, 높이 0~150
+    const w = R.int(3, 5) * 20, h = R.int(2, 4) * 20, top = 80 - h / 2;
+    if (k === "square") { const s = R.int(3, 4) * 20; return [[cx - s / 2, 80 - s / 2], [cx + s / 2, 80 - s / 2], [cx + s / 2, 80 + s / 2], [cx - s / 2, 80 + s / 2]]; }
+    if (k === "rect") { const W = h === w ? w + 20 : Math.max(w, h + 20); return [[cx - W / 2, top], [cx + W / 2, top], [cx + W / 2, top + h], [cx - W / 2, top + h]]; }
+    if (k === "rhomb") { const p = R.int(2, 3) * 20, q = p === 40 ? 60 : 40; return [[cx, 80 - q], [cx + p, 80], [cx, 80 + q], [cx - p, 80]]; }
+    if (k === "para") {
+      const W = R.int(3, 4) * 20, sh = 20 * R.pick([1, -1]);
+      if (Math.abs(Math.hypot(2 * sh, h) - W) < 1) return drawKind(R, k, cx);      // 마름모가 되지 않게
+      return [[cx - W / 2 + sh, top], [cx + W / 2 + sh, top], [cx + W / 2 - sh, top + h], [cx - W / 2 - sh, top + h]];
+    }
+    if (k === "trap") { const tw = R.int(1, 2) * 20, off = R.int(-10, 10); return [[cx - tw / 2 + off, top], [cx + tw / 2 + off, top], [cx + w / 2 + 5, top + h], [cx - w / 2 - 5, top + h]]; }
+    return [[cx - 45, top + h], [cx + 50, top + h - 10], [cx + 30, top], [cx - 20, top + 15]];
+  }
+  G["geo.classify"] = (R, o) => {
+    const ask = o.ask || R.pick(["para", "rhomb", "rect", "trap", "square"]);
+    for (let t = 0; t < 50; t++) {
+      const kinds = R.shuffle(["square", "rect", "rhomb", "para", "trap", "irr"]).slice(0, 5);
+      const ans = kinds.map((k, i) => (KINDS[k].includes(ask) ? i + 1 : 0)).filter(Boolean);
+      if (!ans.length || ans.length === 5) continue;
+      let draw = gridBg(640, 170, 20);
+      kinds.forEach((k, i) => { const cx = 64 + i * 128; draw += poly(drawKind(R, k, cx)) + tx(cx, 162, "가나다라마"[i], 24); });
+      return { type: "choice", multi: true, text: `${KNAME[ask]}을(를) 모두 고르세요.`, answer: ans, options: "가나다라마".split("").map(c => ({ label: c })), figure: { w: 640, h: 170, draw } };
+    }
+  };
+
   /** 문항 틀 → 실제 문항 (같은 씨앗이면 항상 같은 문제) */
   L.instantiate = (t, seed) => {
+    if (t && !t.gen && t.shuffle && Array.isArray(t.options)) {      // 고정 문항: 보기 순서만 섞기
+      const R = makeRng(seed + "|shuffle"), order = R.shuffle(t.options.map((_, i) => i));
+      const remap = x => order.indexOf(x - 1) + 1;
+      const answer = Array.isArray(t.answer) ? t.answer.map(remap).sort((p, q) => p - q) : remap(t.answer);
+      return Object.assign({}, t, { options: order.map(i => t.options[i]), answer });
+    }
     if (!t || !t.gen) return t;
     const g = L.GENS[t.gen];
     if (!g) return { type: "ox", text: `(문제 틀 '${t.gen}'을 찾을 수 없어요)`, answer: "O" };

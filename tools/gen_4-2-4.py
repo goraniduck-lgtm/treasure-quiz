@@ -81,7 +81,52 @@ TRI      = poly((20, 90), (140, 90), (90, 20))
 RTRI     = poly((30, 90), (130, 90), (30, 25))
 HEX      = poly(*[(80 + 48 * math.cos(math.radians(a)), 55 + 48 * math.sin(math.radians(a))) for a in range(0, 360, 60)])
 
+# 길이·각도가 바뀌는 문항은 generators.js 의 문제 틀로 바꿔 넣는다 (문제 앞부분 → 틀)
+GEN_MAP = [
+    ("직선 나는 직선 가에 대한 수선입니다.\n㉠", "geo.perpAngle", {}),
+    ("모눈 한 칸의 길이는 1 cm입니다.\n평행선", "geo.gridDist", {}),
+    ("직사각형에서 변 ㄱㄹ과 변 ㄴㄷ 사이", "geo.rectDist", {}),
+    ("직선 가, 나, 다, 라는 서로 평행", "geo.parSum", {"lines": 4}),
+    ("직선 가, 나, 다는 서로 평행", "geo.parSum", {"lines": 3}),
+    ("평행사변형에서 위아래 두 변", "geo.pgramHeight", {}),
+    ("직선 가와 직선 나는 서로 평행합니다.\n평행선 사이의 거리", "geo.slantDist", {}),
+    ("평행사변형 ㄱㄴㄷㄹ에서 변 ㄴㄷ", "geo.pgramSide", {}),
+    ("평행사변형 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 60°", "geo.pgramAngle", {"kind": "adj"}),
+    ("평행사변형 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 70°", "geo.pgramAngle", {"kind": "opp"}),
+    ("평행사변형의 네 변의 길이의 합은 몇", "geo.pgramPerim", {}),
+    ("평행사변형 ㄱㄴㄷㄹ의 네 변의 길이의 합은", "geo.pgramPerim", {"inverse": True}),
+    ("평행사변형에서 한 각이", "geo.adjAngle", {}),
+    ("마름모의 네 변의 길이의 합은 몇", "geo.rhombPerim", {}),
+    ("마름모의 네 변의 길이의 합이", "geo.rhombPerim", {"inverse": True}),
+    ("마름모의 한 변의 길이가", "geo.rhombPerim", {}),
+    ("마름모 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이", "geo.rhombAngle", {}),
+    ("마름모에서 선분 ㄱㄷ", "geo.rhombHalf", {}),
+    ("정사각형의 네 변의 길이의 합이", "geo.squarePerim", {}),
+]
+KIND_OF = {"평행사변형을 모두": "para", "마름모를 모두": "rhomb", "직사각형을 모두": "rect", "사다리꼴을 모두": "trap"}
+
+def convert(q):
+    for prefix, gen, opts in GEN_MAP:
+        if q["type"] == "number" and q["text"].startswith(prefix):
+            t = {"gen": gen}
+            if opts: t["opts"] = opts
+            if q.get("points"): t["points"] = q["points"]
+            return t
+    if q["type"] == "choice":
+        opts = q.get("options", [])
+        labeled = any(isinstance(o, dict) and o.get("label") for o in opts)
+        if labeled and [o.get("label") for o in opts] == list("가나다라마") and q.get("figure") and q["figure"].get("w") == 640:
+            for k, kind in KIND_OF.items():
+                if q["text"].startswith(k):
+                    t = {"gen": "geo.classify", "opts": {"ask": kind}}
+                    if q.get("points"): t["points"] = q["points"]
+                    return t
+        if not labeled and len(opts) > 2:
+            q = dict(q); q["shuffle"] = True       # 보기 순서만 섞기 (보기 이름이 그림에 붙은 문항은 그대로)
+    return q
+
 def write(fname, meta, questions):
+    questions = [convert(q) for q in questions]
     meta = dict(meta)
     meta["questions"] = questions
     js = "// 자동 생성: tools/gen_4-2-4.py 를 고쳐서 다시 만드세요\nconst QUIZ = " + json.dumps(meta, ensure_ascii=False, indent=1) + ";\n"

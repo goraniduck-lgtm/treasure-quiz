@@ -59,7 +59,8 @@ const QUIZ = {
      }
     }
    ],
-   "explain": "정사각형도 네 변의 길이가 모두 같으니 마름모예요."
+   "explain": "정사각형도 네 변의 길이가 모두 같으니 마름모예요.",
+   "shuffle": true
   },
   {
    "type": "ox",
@@ -73,26 +74,10 @@ const QUIZ = {
    "explain": "마름모는 마주 보는 두 각의 크기가 같아요."
   },
   {
-   "type": "number",
-   "text": "마름모의 네 변의 길이의 합은 몇 cm인가요?",
-   "answer": 20,
-   "unit": "cm",
-   "figure": {
-    "w": 320,
-    "h": 228,
-    "draw": "<polygon points=\"160,34 60,114 160,194 260,114\"/><text x=\"90\" y=\"64\" style=\"font-size:17px\">5 cm</text>"
-   }
+   "gen": "geo.rhombPerim"
   },
   {
-   "type": "number",
-   "text": "마름모 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 80°입니다.\n각 ㄴㄱㄹ은 몇 도인가요?",
-   "answer": 100,
-   "unit": "°",
-   "figure": {
-    "w": 320,
-    "h": 228,
-    "draw": "<polygon points=\"160,34 60,114 160,194 260,114\"/><text x=\"160\" y=\"24\">ㄱ</text><text x=\"44\" y=\"120\">ㄴ</text><text x=\"160\" y=\"216\">ㄷ</text><text x=\"276\" y=\"120\">ㄹ</text><text x=\"94\" y=\"120\" style=\"font-size:16px\">80°</text>"
-   }
+   "gen": "geo.rhombAngle"
   },
   {
    "type": "number",
@@ -106,17 +91,8 @@ const QUIZ = {
    }
   },
   {
-   "type": "number",
-   "text": "마름모에서 선분 ㄱㄷ의 길이는 10 cm입니다.\n선분 ㄱㅇ은 몇 cm인가요?",
-   "answer": 5,
-   "unit": "cm",
-   "points": 20,
-   "figure": {
-    "w": 320,
-    "h": 228,
-    "draw": "<polygon points=\"160,34 60,114 160,194 260,114\"/><line x1=\"160\" y1=\"34\" x2=\"160\" y2=\"194\"/><line x1=\"60\" y1=\"114\" x2=\"260\" y2=\"114\"/><text x=\"160\" y=\"24\">ㄱ</text><text x=\"44\" y=\"120\">ㄴ</text><text x=\"160\" y=\"216\">ㄷ</text><text x=\"276\" y=\"120\">ㄹ</text><text x=\"174\" y=\"136\" style=\"font-size:17px\">ㅇ</text>"
-   },
-   "explain": "마주 보는 꼭짓점끼리 이은 선분은 서로를 똑같이 둘로 나눠요."
+   "gen": "geo.rhombHalf",
+   "points": 20
   },
   {
    "type": "choice",
@@ -132,7 +108,8 @@ const QUIZ = {
     "두 쌍의 마주 보는 변이 서로 평행합니다.",
     "네 각이 항상 모두 직각입니다.",
     "이웃한 두 각의 크기의 합이 180°입니다."
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "ox",
@@ -153,13 +130,14 @@ const QUIZ = {
     "마름모",
     "정사각형",
     "삼각형"
-   ]
+   ],
+   "shuffle": true
   },
   {
-   "type": "number",
-   "text": "마름모의 네 변의 길이의 합이 36 cm입니다.\n한 변의 길이는 몇 cm인가요?",
-   "answer": 9,
-   "unit": "cm"
+   "gen": "geo.rhombPerim",
+   "opts": {
+    "inverse": true
+   }
   }
  ]
 };

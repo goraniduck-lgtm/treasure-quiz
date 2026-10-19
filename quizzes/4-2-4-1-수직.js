@@ -72,7 +72,8 @@ const QUIZ = {
       "grid": 10
      }
     }
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "choice",
@@ -91,7 +92,8 @@ const QUIZ = {
     "직선 나",
     "직선 다",
     "직선 라"
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "number",
@@ -145,19 +147,12 @@ const QUIZ = {
       "grid": 10
      }
     }
-   ]
+   ],
+   "shuffle": true
   },
   {
-   "type": "number",
-   "text": "직선 나는 직선 가에 대한 수선입니다.\n㉠의 각도는 몇 도인가요?",
-   "answer": 40,
-   "unit": "°",
-   "points": 20,
-   "figure": {
-    "w": 320,
-    "h": 190,
-    "draw": "<line x1=\"20\" y1=\"150\" x2=\"300\" y2=\"150\"/><text x=\"292\" y=\"140\">가</text><line x1=\"140\" y1=\"15\" x2=\"140\" y2=\"180\"/><text x=\"156\" y=\"26\">나</text><path d=\"M 130 150 L 130 140 L 140 140\" style=\"stroke-width:2\"/><line x1=\"140\" y1=\"150\" x2=\"236.418\" y2=\"35.0933\"/><text x=\"212\" y=\"140\" style=\"font-size:17px\">50°</text><text x=\"160\" y=\"96\" style=\"font-size:18px\">㉠</text>"
-   }
+   "gen": "geo.perpAngle",
+   "points": 20
   },
   {
    "type": "choice",
@@ -168,7 +163,8 @@ const QUIZ = {
     "나래: 각도기에서 90°가 되는 눈금을 찾아 수선을 그을 수 있어.",
     "다온: 수선은 주어진 직선과 직각으로 만나.",
     "라희: 각도기로는 수선을 그을 수 없어."
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "ox",
@@ -192,7 +188,8 @@ const QUIZ = {
     "변 ㄴㄷ",
     "변 ㄷㄹ",
     "변 ㄱㄹ"
-   ]
+   ],
+   "shuffle": true
   }
  ]
 };

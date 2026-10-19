@@ -48,7 +48,8 @@ const QUIZ = {
     "마름모",
     "직사각형"
    ],
-   "explain": "정사각형은 사다리꼴, 평행사변형, 마름모, 직사각형의 성질을 모두 가지고 있어요."
+   "explain": "정사각형은 사다리꼴, 평행사변형, 마름모, 직사각형의 성질을 모두 가지고 있어요.",
+   "shuffle": true
   },
   {
    "type": "choice",
@@ -64,147 +65,36 @@ const QUIZ = {
     "마주 보는 두 변의 길이가 같습니다.",
     "네 변의 길이가 항상 모두 같습니다.",
     "두 쌍의 마주 보는 변이 서로 평행합니다."
-   ]
+   ],
+   "shuffle": true
   },
   {
-   "type": "choice",
-   "text": "평행사변형을 모두 고르세요.",
-   "answer": [
-    1,
-    2,
-    3,
-    4
-   ],
-   "multi": true,
-   "figure": {
-    "w": 640,
-    "h": 170,
-    "draw": "<polygon points=\"20,40 100,40 100,120 20,120\"/><text x=\"60\" y=\"164\" style=\"font-size:24px\">가</text><polygon points=\"130,50 250,50 250,110 130,110\"/><text x=\"190\" y=\"164\" style=\"font-size:24px\">나</text><polygon points=\"320,20 360,80 320,140 280,80\"/><text x=\"320\" y=\"164\" style=\"font-size:24px\">다</text><polygon points=\"390,120 470,120 500,40 420,40\"/><text x=\"445\" y=\"164\" style=\"font-size:24px\">라</text><polygon points=\"520,120 620,120 590,50 545,50\"/><text x=\"568.75\" y=\"164\" style=\"font-size:24px\">마</text>",
-    "grid": 20
-   },
-   "options": [
-    {
-     "label": "가"
-    },
-    {
-     "label": "나"
-    },
-    {
-     "label": "다"
-    },
-    {
-     "label": "라"
-    },
-    {
-     "label": "마"
-    }
-   ]
+   "gen": "geo.classify",
+   "opts": {
+    "ask": "para"
+   }
   },
   {
-   "type": "choice",
-   "text": "마름모를 모두 고르세요.",
-   "answer": [
-    1,
-    3
-   ],
-   "multi": true,
-   "figure": {
-    "w": 640,
-    "h": 170,
-    "draw": "<polygon points=\"20,40 100,40 100,120 20,120\"/><text x=\"60\" y=\"164\" style=\"font-size:24px\">가</text><polygon points=\"130,50 250,50 250,110 130,110\"/><text x=\"190\" y=\"164\" style=\"font-size:24px\">나</text><polygon points=\"320,20 360,80 320,140 280,80\"/><text x=\"320\" y=\"164\" style=\"font-size:24px\">다</text><polygon points=\"390,120 470,120 500,40 420,40\"/><text x=\"445\" y=\"164\" style=\"font-size:24px\">라</text><polygon points=\"520,120 620,120 590,50 545,50\"/><text x=\"568.75\" y=\"164\" style=\"font-size:24px\">마</text>",
-    "grid": 20
-   },
-   "options": [
-    {
-     "label": "가"
-    },
-    {
-     "label": "나"
-    },
-    {
-     "label": "다"
-    },
-    {
-     "label": "라"
-    },
-    {
-     "label": "마"
-    }
-   ]
+   "gen": "geo.classify",
+   "opts": {
+    "ask": "rhomb"
+   }
   },
   {
-   "type": "choice",
-   "text": "직사각형을 모두 고르세요.",
-   "answer": [
-    1,
-    2
-   ],
-   "multi": true,
-   "figure": {
-    "w": 640,
-    "h": 170,
-    "draw": "<polygon points=\"20,40 100,40 100,120 20,120\"/><text x=\"60\" y=\"164\" style=\"font-size:24px\">가</text><polygon points=\"130,50 250,50 250,110 130,110\"/><text x=\"190\" y=\"164\" style=\"font-size:24px\">나</text><polygon points=\"320,20 360,80 320,140 280,80\"/><text x=\"320\" y=\"164\" style=\"font-size:24px\">다</text><polygon points=\"390,120 470,120 500,40 420,40\"/><text x=\"445\" y=\"164\" style=\"font-size:24px\">라</text><polygon points=\"520,120 620,120 590,50 545,50\"/><text x=\"568.75\" y=\"164\" style=\"font-size:24px\">마</text>",
-    "grid": 20
-   },
-   "options": [
-    {
-     "label": "가"
-    },
-    {
-     "label": "나"
-    },
-    {
-     "label": "다"
-    },
-    {
-     "label": "라"
-    },
-    {
-     "label": "마"
-    }
-   ]
+   "gen": "geo.classify",
+   "opts": {
+    "ask": "rect"
+   }
   },
   {
-   "type": "choice",
-   "text": "사다리꼴을 모두 고르세요.",
-   "answer": [
-    1,
-    2,
-    3,
-    4,
-    5
-   ],
-   "multi": true,
-   "figure": {
-    "w": 640,
-    "h": 170,
-    "draw": "<polygon points=\"20,40 100,40 100,120 20,120\"/><text x=\"60\" y=\"164\" style=\"font-size:24px\">가</text><polygon points=\"130,50 250,50 250,110 130,110\"/><text x=\"190\" y=\"164\" style=\"font-size:24px\">나</text><polygon points=\"320,20 360,80 320,140 280,80\"/><text x=\"320\" y=\"164\" style=\"font-size:24px\">다</text><polygon points=\"390,120 470,120 500,40 420,40\"/><text x=\"445\" y=\"164\" style=\"font-size:24px\">라</text><polygon points=\"520,120 620,120 590,50 545,50\"/><text x=\"568.75\" y=\"164\" style=\"font-size:24px\">마</text>",
-    "grid": 20
+   "gen": "geo.classify",
+   "opts": {
+    "ask": "trap"
    },
-   "options": [
-    {
-     "label": "가"
-    },
-    {
-     "label": "나"
-    },
-    {
-     "label": "다"
-    },
-    {
-     "label": "라"
-    },
-    {
-     "label": "마"
-    }
-   ],
    "points": 20
   },
   {
-   "type": "number",
-   "text": "정사각형의 네 변의 길이의 합이 28 cm입니다.\n한 변의 길이는 몇 cm인가요?",
-   "answer": 7,
-   "unit": "cm"
+   "gen": "geo.squarePerim"
   },
   {
    "type": "ox",

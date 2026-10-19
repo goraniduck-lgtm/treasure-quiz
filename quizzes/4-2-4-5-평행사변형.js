@@ -67,7 +67,8 @@ const QUIZ = {
       "grid": 10
      }
     }
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "ox",
@@ -81,48 +82,22 @@ const QUIZ = {
    "explain": "이웃한 두 각의 크기의 합은 180°예요."
   },
   {
-   "type": "number",
-   "text": "평행사변형 ㄱㄴㄷㄹ에서 변 ㄴㄷ의 길이는 몇 cm인가요?",
-   "answer": 7,
-   "unit": "cm",
-   "figure": {
-    "w": 380,
-    "h": 180,
-    "draw": "<polygon points=\"120,40 60,140 260,140 320,40\"/><text x=\"106.98\" y=\"36.7002\">ㄱ</text><text x=\"45.0665\" y=\"151.744\">ㄴ</text><text x=\"273.02\" y=\"155.3\">ㄷ</text><text x=\"334.934\" y=\"40.2563\">ㄹ</text><text x=\"220\" y=\"30\" style=\"font-size:17px\">7 cm</text><text x=\"66\" y=\"92\" style=\"font-size:17px\">4 cm</text>"
+   "gen": "geo.pgramSide"
+  },
+  {
+   "gen": "geo.pgramAngle",
+   "opts": {
+    "kind": "adj"
    }
   },
   {
-   "type": "number",
-   "text": "평행사변형 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 60°입니다.\n각 ㄴㄱㄹ은 몇 도인가요?",
-   "answer": 120,
-   "unit": "°",
-   "figure": {
-    "w": 380,
-    "h": 180,
-    "draw": "<polygon points=\"120,40 60,140 260,140 320,40\"/><text x=\"106.98\" y=\"36.7002\">ㄱ</text><text x=\"45.0665\" y=\"151.744\">ㄴ</text><text x=\"273.02\" y=\"155.3\">ㄷ</text><text x=\"334.934\" y=\"40.2563\">ㄹ</text><text x=\"92\" y=\"130\" style=\"font-size:16px\">60°</text>"
+   "gen": "geo.pgramAngle",
+   "opts": {
+    "kind": "opp"
    }
   },
   {
-   "type": "number",
-   "text": "평행사변형 ㄱㄴㄷㄹ에서 각 ㄱㄴㄷ이 70°입니다.\n각 ㄱㄹㄷ은 몇 도인가요?",
-   "answer": 70,
-   "unit": "°",
-   "figure": {
-    "w": 380,
-    "h": 180,
-    "draw": "<polygon points=\"120,40 60,140 260,140 320,40\"/><text x=\"106.98\" y=\"36.7002\">ㄱ</text><text x=\"45.0665\" y=\"151.744\">ㄴ</text><text x=\"273.02\" y=\"155.3\">ㄷ</text><text x=\"334.934\" y=\"40.2563\">ㄹ</text><text x=\"92\" y=\"130\" style=\"font-size:16px\">70°</text>"
-   }
-  },
-  {
-   "type": "number",
-   "text": "평행사변형의 네 변의 길이의 합은 몇 cm인가요?",
-   "answer": 26,
-   "unit": "cm",
-   "figure": {
-    "w": 380,
-    "h": 180,
-    "draw": "<polygon points=\"120,40 60,140 260,140 320,40\"/><text x=\"220\" y=\"30\" style=\"font-size:17px\">8 cm</text><text x=\"66\" y=\"92\" style=\"font-size:17px\">5 cm</text>"
-   }
+   "gen": "geo.pgramPerim"
   },
   {
    "type": "choice",
@@ -164,19 +139,15 @@ const QUIZ = {
     "나래: 마주 보는 두 변의 길이가 같아.",
     "다온: 네 각의 크기의 합은 360°야.",
     "라희: 네 변의 길이가 항상 모두 같아."
-   ]
+   ],
+   "shuffle": true
   },
   {
-   "type": "number",
-   "text": "평행사변형 ㄱㄴㄷㄹ의 네 변의 길이의 합은 30 cm입니다.\n변 ㄱㄴ이 9 cm일 때, 변 ㄴㄷ은 몇 cm인가요?",
-   "answer": 6,
-   "unit": "cm",
-   "points": 20,
-   "figure": {
-    "w": 380,
-    "h": 180,
-    "draw": "<polygon points=\"120,40 60,140 260,140 320,40\"/><text x=\"106.98\" y=\"36.7002\">ㄱ</text><text x=\"45.0665\" y=\"151.744\">ㄴ</text><text x=\"273.02\" y=\"155.3\">ㄷ</text><text x=\"334.934\" y=\"40.2563\">ㄹ</text><text x=\"66\" y=\"92\" style=\"font-size:17px\">9 cm</text>"
-   }
+   "gen": "geo.pgramPerim",
+   "opts": {
+    "inverse": true
+   },
+   "points": 20
   }
  ]
 };

@@ -72,7 +72,8 @@ const QUIZ = {
       "grid": 10
      }
     }
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "choice",
@@ -87,7 +88,8 @@ const QUIZ = {
     "직선 나",
     "직선 다",
     "직선 라"
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "number",
@@ -166,7 +168,8 @@ const QUIZ = {
       "grid": 10
      }
     }
-   ]
+   ],
+   "shuffle": true
   },
   {
    "type": "ox",
@@ -183,7 +186,8 @@ const QUIZ = {
     "다온: 한 직선과 평행한 직선은 셀 수 없이 많이 그을 수 있어.",
     "라희: 삼각자 두 개를 이용하면 평행선을 그을 수 있어."
    ],
-   "explain": "한 직선에 수직인 두 직선은 서로 평행해요."
+   "explain": "한 직선에 수직인 두 직선은 서로 평행해요.",
+   "shuffle": true
   }
  ]
 };
