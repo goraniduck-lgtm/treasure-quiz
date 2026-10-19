@@ -75,7 +75,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .cell.corner .px{color:var(--sun-ink)}
 .cell.owned{background:var(--own);color:#fff;border-color:#fff;box-shadow:0 calc(var(--u)*.35) 0 rgba(0,0,0,.28)}
 .cell.owned::before{content:"";position:absolute;left:18%;right:18%;top:24%;bottom:16%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 36'%3E%3Cpath d='M20 2 2 17h5v17h10V24h6v10h10V17h5z' fill='%23ffffff'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.26;pointer-events:none}
-.cell.owned .band{background:rgba(0,0,0,.24)!important;color:#fff;font-family:var(--f-display);font-size:calc(var(--u)*1.3)}
+.cell.owned[data-lv="2"]::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 36'%3E%3Cpath d='M14 10 2 20h4v14h7v-7h3v7h7V20h4z M44 2 28 16h5v18h8v-8h6v8h8V16h5z' fill='%23ffffff'/%3E%3C/svg%3E");left:10%;right:10%}
+.cell.owned[data-lv="3"]::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 34'%3E%3Cpath d='M5 26 2 5l10 9 8-13 8 13 10-9-3 21z M5 28h30v5H5z' fill='%23ffffff'/%3E%3C/svg%3E");opacity:.38}
+.cell.owned[data-lv="3"]{box-shadow:inset 0 0 0 calc(var(--u)*.45) var(--sun),0 calc(var(--u)*.35) 0 rgba(0,0,0,.28)}
+.cell.owned .band{background:rgba(0,0,0,.24)!important;color:#fff;font-family:var(--f-display);font-size:calc(var(--u)*1.2);overflow:hidden;padding:0 calc(var(--u)*.2)}
 .cell.owned .nm2{position:relative;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 .cell.owned .px{color:#fff;font-weight:700}
 .cell.wip{background:repeating-linear-gradient(-45deg,#fff3c4 0 calc(var(--u)*.8),#fffdf5 calc(var(--u)*.8) calc(var(--u)*1.6))}
@@ -192,6 +195,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .card small{font-family:var(--f-display);font-size:17px;opacity:.7}
 .card p{margin:0;font-family:var(--f-display);font-size:25px;line-height:1.35;word-break:keep-all;text-wrap:balance}
 @keyframes flip{from{transform:rotateY(80deg)}to{transform:none}}
+.wheel{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.slot{padding:20px 6px;border-radius:16px;background:#efe9d6;text-align:center;font-family:var(--f-display);font-size:26px;line-height:1.15;border:3px solid transparent;transition:transform .08s}
+.slot small{display:block;font-size:14px;opacity:.75}
+.slot.jack{background:var(--sun);color:var(--sun-ink)}
+.slot.on{border-color:var(--ink);background:#fff;transform:scale(1.06)}
+.slot.win{border-color:var(--ok);background:var(--ok);color:#fff;transform:scale(1.08)}
 .pin{display:flex;flex-direction:column;align-items:center;gap:14px}
 .pin .dots{display:flex;gap:12px}
 .pin .dots i{width:18px;height:18px;border-radius:50%;border:2px solid var(--ink)}
@@ -233,7 +242,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
   <div id="resumeBox" class="resume" hidden><span id="resumeText">진행 중인 게임이 있어요.</span><button class="ghost" id="resumeBtn" type="button">이어 하기</button></div>
   <div class="field"><span>몇 명이 하나요?</span><div class="seg" id="cntSeg"><button type="button" data-n="3" aria-pressed="false">3명</button><button type="button" data-n="4" aria-pressed="true">4명</button></div></div>
   <div class="field"><span>별명 (말 위에 첫 글자가 보여요)</span><div class="names" id="names"></div></div>
-  <div class="field"><span>게임 시간</span><div class="seg" id="minSeg"><button type="button" data-m="20" aria-pressed="false">20분</button><button type="button" data-m="25" aria-pressed="true">25분</button><button type="button" data-m="30" aria-pressed="false">30분</button></div></div>
+  <div class="field"><span>게임 시간</span><div class="seg" id="minSeg"><button type="button" data-m="15" aria-pressed="false">15분</button><button type="button" data-m="20" aria-pressed="true">20분</button><button type="button" data-m="25" aria-pressed="false">25분</button></div></div>
   <p class="rule-mini"><b>이렇게 이겨요</b> 시간이 끝나면 그 라운드까지 마치고, <b>현금 + 내 건물값</b>이 가장 많은 사람이 이겨요. 시작 돈 50 · 출발점을 지나면 월급 10 · 돈이 0이 되어도 탈락은 없어요.</p>
   <div class="actions"><button class="big" id="startBtn" type="button">게임 시작</button><button class="ghost" id="rulesBtn" type="button">규칙 보기</button></div>
  </div>
@@ -441,7 +450,7 @@ const SPNOTE = {start:"지나면 +10",job:"맞춤법 1문제",mission:"카드 �
 const SIDE_LABEL = ["시","이야기","설명 글","의견 글"];
 const SPELL_ALL = WS_SPELL.concat(UNIT_SPELL);
 const MAZE_ALL = SPELL_ALL.concat(WS_VOC, UNIT_VOC);
-const KEY = "bookroad-marble-v2";
+const KEY = "bookroad-marble-v3";
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const $ = s => document.querySelector(s);
 const sleep = ms => new Promise(r => setTimeout(r, RM ? Math.min(ms, 40) : ms));
@@ -454,8 +463,12 @@ const J = (n, a, b) => { const d = Math.abs(n) % 10; return n + ([0,1,3,6,7,8].i
 let S = null, busy = false;
 const typeOf = i => SPECIAL[i] || "q";
 const sq = i => UNIT[i];
-const fullCost = i => COST[sq(i).type].build;
-const tollOf = i => COST[sq(i).type].toll;
+const TOLLS = {basic:[5,10,20], adv:[15,25,40]};       // 집 · 빌딩 · 랜드마크
+const LV_NAME = ["", "집", "빌딩", "랜드마크"];
+const fullCost = i => COST[sq(i).type].build;          // 건설비 = 증축비
+const lvOf = i => (S && S.b[i] && S.b[i].st === "built") ? (S.b[i].lv || 1) : 1;
+const tollOf = (i, lv = lvOf(i)) => TOLLS[sq(i).type][lv - 1];
+const valueOf = i => fullCost(i) * lvOf(i);
 
 /* ---------- 저장 ---------- */
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
@@ -463,7 +476,7 @@ function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); return s
 function clearSave(){ try { localStorage.removeItem(KEY); } catch(e){} }
 
 /* ---------- 시작 화면 ---------- */
-let setCount = 4, setMin = 25;
+let setCount = 4, setMin = 20;
 function drawNames(){
   const box = $("#names"), old = [...box.querySelectorAll("input")].map(i => i.value);
   box.innerHTML = "";
@@ -543,15 +556,15 @@ function render(){
     el.classList.toggle("wip", !!(b && b.st === "wip"));
     if (typeOf(i) === "q"){
       const band = el.querySelector(".band"), px = el.querySelector(".px");
-      if (b && b.st === "built"){ const o = S.players[b.o]; el.style.setProperty("--own", PCOLORS[o.color]); band.textContent = o.name + "의 건물"; px.textContent = `통행료 ${tollOf(i)}`; }
-      else { el.style.removeProperty("--own"); band.textContent = el.dataset.band; px.textContent = b ? `공사 중 · ${fullCost(i) / 2}로 도전` : `건설 ${fullCost(i)} · 통행 ${tollOf(i)}`; }
+      if (b && b.st === "built"){ const o = S.players[b.o], lv = lvOf(i); el.style.setProperty("--own", PCOLORS[o.color]); el.dataset.lv = lv; band.textContent = `${[...o.name].slice(0, 3).join("")} ${LV_NAME[lv]}`; px.textContent = `통행료 ${tollOf(i)}`; }
+      else { el.style.removeProperty("--own"); delete el.dataset.lv; band.textContent = el.dataset.band; px.textContent = b ? `공사 중 · ${fullCost(i) / 2}로 도전` : `건설 ${fullCost(i)} · 통행 ${tollOf(i)}`; }
     }
     el.classList.toggle("here", S.players[S.turn].pos === i);
     el.querySelector(".tokens").innerHTML = S.players.filter(p => p.pos === i).map(p => tokHTML(p, p.jail ? "jail" : "")).join("");
   }
   const p = S.players[S.turn];
   $("#turn").innerHTML = `${tokHTML(p)}<span>${esc(p.name)} 차례</span>`;
-  $("#rollBtn").textContent = p.jail ? "탈출 주사위" : "주사위 굴리기";
+  $("#rollBtn").textContent = p.cash <= 0 ? "장학금 받고 굴리기" : p.jail ? "탈출 주사위" : "주사위 굴리기";
   $("#rollBtn").disabled = busy || S.over;
   $("#logbox").innerHTML = S.log.slice(0, 5).map(l => `<div>${l}</div>`).join("");
   drawDie($("#d1"), S.dice[0]); drawDie($("#d2"), S.dice[1]);
@@ -560,7 +573,7 @@ function render(){
   $("#players").innerHTML = S.players.map((q, k) => {
     const f = flashes[k], fl = f && now - f.t < 1600 ? `<span class="delta ${f.d > 0 ? "up" : "down"}" style="animation-delay:-${now - f.t}ms">${f.d > 0 ? "+" : ""}${f.d}</span>` : "";
     const bl = Object.entries(S.b).filter(([i, b]) => b.st === "built" && b.o === k);
-    const val = bl.reduce((s, [i]) => s + fullCost(+i), 0);
+    const val = bl.reduce((s, [i]) => s + valueOf(+i), 0);
     return `<div class="pl ${k === S.turn ? "now" : ""}" style="--pc:${PCOLORS[q.color]}">${tokHTML(q)}<div class="who">${esc(q.name)}</div><div class="cash">${q.cash}</div>
       ${fl}<div class="coins" aria-hidden="true">${coinsHTML(q.cash)}</div><div class="meta"><span>건물 ${bl.length}채 (${val})</span><span>총자산 ${q.cash + val}</span>${q.pass ? `<span class="chip">면제권 ${q.pass}</span>` : ""}${q.jail ? `<span class="chip red">미로 ${q.jail}턴</span>` : ""}</div></div>`;
   }).join("");
@@ -750,6 +763,7 @@ $("#rollBtn").addEventListener("click", async () => {
   busy = true; render();
   const p = cur();
   try {
+    if (p.cash <= 0) await scholarship(p);
     if (p.jail > 0){
       setStatus("미로 탈출 도전!");
       const [a, b] = await rollDice();
@@ -772,6 +786,14 @@ $("#rollBtn").addEventListener("click", async () => {
   } catch (err){ console.error(err); }
   endTurn();
 });
+// 돈이 0이면 차례 시작 때 장학금 문제: 맞히면 +15, 틀려도 +5
+async function scholarship(p){
+  const q = pickFrom(MAZE_ALL, "usedMaze");
+  const ok = await quizMC(q, head("도서관 장학금 · 돈이 0이라 받는 기회", "job", p, q.src));
+  const g = ok ? 15 : 5; p.cash += g;
+  addLog(`${nm(p)} 장학금 +${g}`); render();
+  await info(`${head("도서관 장학금", "job", p)}<h2>장학금 ${J(g,"을","를")} 받았어요</h2><p class="lead">${ok ? "정답이라 15를 받았어요." : "틀려도 5는 받아요."} 이제 주사위를 굴려요.</p>`);
+}
 function endTurn(){
   const last = S.turn === S.players.length - 1;
   S.turn = (S.turn + 1) % S.players.length;
@@ -827,46 +849,98 @@ function cellName(i){ const t = typeOf(i); return t === "q" ? sq(i).name : SPNAM
 
 async function landQ(i){
   const p = cur(), b = S.b[i], s = sq(i), me = S.turn;
+  const top = head(`${s.type === "basic" ? "기본 문제 · 태블릿 채점" : "심화 문제 · 모둠 판정"}`, s.type, p, "교과서 " + s.page);
+  if (b && b.st === "built" && b.o === me) return upgrade(i, top);
   if (b && b.st === "built"){
-    if (b.o === me){ addLog(`${nm(p)} 내 건물 ${s.name}`); return info(`${head(s.name, "", p)}<h2>내 건물이에요</h2><p class="lead">편히 쉬어 가요.</p>`); }
     const o = S.players[b.o], toll = tollOf(i);
     if (p.pass > 0){
       const use = await choose(`${head("통행료", "", p)}<h2>${esc(o.name)}의 ${s.name}에 왔어요</h2><p class="lead">통행료는 <b>${toll}</b>이에요. 면제권을 쓸까요? (남은 면제권 ${p.pass}장)</p>`,
         [{label:"통행료 내기", value:false, cls:"ghost"}, {label:"면제권 쓰기", value:true}]);
       if (use){ p.pass--; addLog(`${nm(p)} 면제권 사용 · ${s.name}`); return; }
     }
-    const pay = Math.min(toll, p.cash); p.cash -= pay; o.cash += pay;
-    addLog(`${nm(p)} → ${nm(o)} 통행료 ${pay}`); render();
-    return info(`${head("통행료", "", p)}<h2>${esc(o.name)}에게 통행료 ${J(pay,"을","를")} 냈어요</h2>${pay < toll ? `<p class="lead">돈이 모자라 있는 만큼만 냈어요. 아르바이트로 다시 벌어요!</p>` : ""}`);
+    const pay = Math.min(toll, p.cash), short = toll - pay; p.cash -= pay; o.cash += toll;
+    addLog(`${nm(p)} → ${nm(o)} 통행료 ${toll}${short ? ` (은행이 ${short} 대신 냄)` : ""}`); render();
+    return info(`${head("통행료", "", p)}<h2>${esc(o.name)}에게 통행료 ${J(toll,"을","를")} 냈어요</h2>${short ? `<p class="lead">돈이 모자라 ${J(pay,"만","만")} 냈어요. 모자란 ${J(short,"은","는")} 은행이 대신 내 줬어요.</p>` : ""}`);
   }
   const wip = !!(b && b.st === "wip"), full = fullCost(i), need = wip ? full / 2 : full, lose = full / 2;
-  const top = head(`${s.type === "basic" ? "기본 문제 · 태블릿 채점" : "심화 문제 · 모둠 판정"}`, s.type, p, "교과서 " + s.page);
   if (p.cash < need){
     addLog(`${nm(p)} ${s.name} 건설비 부족`);
     return info(`${top}<h2>${s.name}${wip ? " (공사 중)" : ""}</h2><p class="lead">건설하려면 <b>${J(need,"이","가")}</b> 필요한데 지금 <b>${J(p.cash,"이","가")}</b> 있어요. 이번에는 지나가요.</p>`);
   }
   const go = await choose(`${top}<h2>${s.name}${wip ? " · 공사 중" : ""}에 건설할까요?</h2>
-    <div class="money"><span>건설비${wip ? " (남은 절반)" : ""}</span><span>${need}</span><span>성공하면</span><span>내 건물 · 통행료 ${tollOf(i)}</span><span>실패하면</span><span>${J(lose,"을","를")} 잃고 ${wip ? "계속 공사 중" : "공사 중 표시"}</span></div>
+    <div class="money"><span>건설비${wip ? " (남은 절반)" : ""}</span><span>${need}</span><span>성공하면</span><span>내 집 · 통행료 ${tollOf(i, 1)}</span><span>실패하면</span><span>${J(lose,"을","를")} 잃고 ${wip ? "계속 공사 중" : "공사 중 표시"}</span></div>
     <p class="lead">문제가 열리면 바로 1분이 시작돼요. 교과서 <b>${s.page}</b>을 미리 펴 두세요.</p>`,
     [{label:"넘어가기", value:false, cls:"ghost"}, {label:"건설 도전", value:true}]);
   if (!go){ addLog(`${nm(p)} ${s.name} 건설하지 않음`); return; }
   const q = pickSquareQ(i);
   const voters = S.players.filter((x, k) => k !== me);
   const ok = s.type === "basic" ? await quizMC(q, top) : await quizOpen(q, top, voters);
-  if (ok){ p.cash -= need; S.b[i] = {st:"built", o:me}; addLog(`${nm(p)} ${s.name} 건설 성공 -${need}`); }
+  if (ok){ p.cash -= need; S.b[i] = {st:"built", o:me, lv:1}; addLog(`${nm(p)} ${s.name} 건설 성공 -${need}`); }
   else { p.cash -= lose; S.b[i] = {st:"wip"}; addLog(`${nm(p)} ${s.name} 건설 실패 -${lose} · 공사 중`); }
   render();
+}
+
+// 내 건물에 다시 오면 증축 도전 (집 → 빌딩 → 랜드마크)
+async function upgrade(i, top){
+  const p = cur(), b = S.b[i], s = sq(i), lv = b.lv || 1;
+  if (lv >= 3){ addLog(`${nm(p)} 내 랜드마크 ${s.name}`); return info(`${head(s.name, "", p)}<h2>내 랜드마크예요</h2><p class="lead">가장 높은 단계예요. 통행료 ${tollOf(i)}. 편히 쉬어 가요.</p>`); }
+  const cost = fullCost(i), next = LV_NAME[lv + 1];
+  if (p.cash < cost){
+    addLog(`${nm(p)} ${s.name} 증축비 부족`);
+    return info(`${top}<h2>내 ${LV_NAME[lv]} · ${s.name}</h2><p class="lead">${next}(으)로 올리려면 <b>${J(cost,"이","가")}</b> 필요한데 지금 <b>${J(p.cash,"이","가")}</b> 있어요. 다음에 도전해요.</p>`);
+  }
+  const go = await choose(`${top}<h2>${s.name}을(를) ${next}(으)로 올릴까요?</h2>
+    <div class="money"><span>증축비</span><span>${cost}</span><span>성공하면</span><span>${next} · 통행료 ${tollOf(i, lv)} → ${tollOf(i, lv + 1)}</span><span>실패하면</span><span>${J(cost / 2,"을","를")} 잃고 ${LV_NAME[lv]} 그대로</span></div>
+    <p class="lead">이 칸의 다른 문제가 나와요. 교과서 <b>${s.page}</b>을 펴 두세요.</p>`,
+    [{label:"쉬어 가기", value:false, cls:"ghost"}, {label:"증축 도전", value:true}]);
+  if (!go){ addLog(`${nm(p)} 내 건물에서 쉬어 감`); return; }
+  const q = pickSquareQ(i), voters = S.players.filter((x, k) => k !== S.turn);
+  const ok = s.type === "basic" ? await quizMC(q, top) : await quizOpen(q, top, voters);
+  if (ok){ p.cash -= cost; b.lv = lv + 1; addLog(`${nm(p)} ${s.name} ${next} 완성 -${cost}`); }
+  else { p.cash -= cost / 2; addLog(`${nm(p)} ${s.name} 증축 실패 -${cost / 2}`); }
+  render();
+}
+
+// 미션 성공 보상 룰렛
+const WHEEL = [{t:"+10", v:10}, {t:"+15", v:15}, {t:"+10", v:10}, {t:"+20", v:20}, {t:"면제권", s:"+ 5", v:"pass"}, {t:"잭팟!", s:"저금통 절반", v:"jack"}];
+function roulette(p){
+  return new Promise(async res => {
+    openSheet(`${head("보상 룰렛", "", p)}<h2>미션 성공! 보상 룰렛이 돌아가요</h2>
+      <div class="wheel">${WHEEL.map((w, k) => `<div class="slot ${w.v === "jack" ? "jack" : ""}" id="sl${k}">${w.t}${w.s ? `<small>${w.s}</small>` : ""}</div>`).join("")}</div><p class="lead" id="wmsg">&nbsp;</p>`);
+    const target = rnd(WHEEL.length), order = [0, 1, 2, 5, 4, 3];
+    const steps = (RM ? 0 : 18) + ((order.indexOf(target) - 0 + order.length) % order.length);
+    let at = 0;
+    for (let k = 0; k <= steps; k++){
+      document.querySelectorAll(".slot").forEach(e => e.classList.remove("on"));
+      at = order[k % order.length]; $("#sl" + at).classList.add("on");
+      await sleep(60 + Math.max(0, k - steps + 8) * 35);
+    }
+    $("#sl" + at).classList.remove("on"); $("#sl" + at).classList.add("win");
+    const w = WHEEL[at]; let msg;
+    if (typeof w.v === "number"){ p.cash += w.v; msg = `${J(w.v,"을","를")} 받았어요!`; addLog(`${nm(p)} 미션 룰렛 +${w.v}`); }
+    else if (w.v === "pass"){ p.pass++; p.cash += 5; msg = "통행료 면제권 1장과 5를 받았어요!"; addLog(`${nm(p)} 미션 룰렛 · 면제권 + 5`); }
+    else {
+      const h = Math.floor(S.piggy / 2), bank = Math.max(0, 20 - h); S.piggy -= h; p.cash += h + bank;
+      msg = `잭팟! 저금통에서 ${J(h,"을","를")} 가져왔어요${bank ? ` · 은행이 ${J(bank,"을","를")} 더 채워 줬어요 (최소 20)` : ""}. 모두 ${h + bank}!`;
+      addLog(`${nm(p)} 미션 룰렛 잭팟 +${h + bank}`);
+    }
+    render();
+    $("#wmsg").textContent = msg;
+    $("#sheet").insertAdjacentHTML("beforeend", `<div class="row-btns"><button type="button" class="big" id="wok">확인</button></div>`);
+    $("#wok").addEventListener("click", () => { closeSheet(); res(); });
+    $("#wok").focus();
+  });
 }
 
 async function drawCard(){
   const p = cur();
   if (S.deckPos >= S.deck.length){ S.deck = shuffle([...MISSIONS.keys()]); S.deckPos = 0; }
   const m = MISSIONS[S.deck[S.deckPos++]];
-  const cardHTML = `<div class="card ${m.kind}"><small>${m.kind === "do" ? "교실 미션 · 성공하면 +5" : "행운 카드"}</small><p>${esc(m.t)}</p></div>`;
+  const cardHTML = `<div class="card ${m.kind}"><small>${m.kind === "do" ? "교실 미션 · 성공하면 보상 룰렛" : "행운 카드"}</small><p>${esc(m.t)}</p></div>`;
   if (m.kind === "do"){
     const ok = await choose(`${head("미션 카드", "", p)}${cardHTML}<p class="lead">모둠 친구들이 보고 성공인지 눌러 주세요.</p>`,
-      [{label:"못 했어요", value:false, cls:"ghost"}, {label:"성공 +5", value:true}]);
-    if (ok){ p.cash += 5; addLog(`${nm(p)} 미션 성공 +5`); } else addLog(`${nm(p)} 미션 실패`);
+      [{label:"못 했어요", value:false, cls:"ghost"}, {label:"성공! 룰렛 돌리기", value:true}]);
+    if (ok) await roulette(p); else addLog(`${nm(p)} 미션 실패`);
     return;
   }
   const others = S.players.filter(x => x !== p);
@@ -891,13 +965,13 @@ async function drawCard(){
 function cellInfo(i){
   const t = typeOf(i);
   if (t !== "q"){
-    const d = {start:`지나가거나 도착하면 월급 ${SALARY}.`, job:"맞춤법 1문제를 맞히면 +5. 내 돈이 20보다 적으면 +10.", mission:"카드를 뽑아 교실 미션(성공 +5)이나 행운 카드를 받아요.",
+    const d = {start:`지나가거나 도착하면 월급 ${SALARY}.`, job:"맞춤법 1문제를 맞히면 +5. 내 돈이 20보다 적으면 +10.", mission:"카드를 뽑아 교실 미션(성공하면 보상 룰렛)이나 행운 카드를 받아요.",
       maze:"갇히면 최대 2턴. 더블이나 문제 정답이면 탈출.", save:"5를 저축해요. 돼지저금통에는 두 배가 쌓여요.", leap:"원하면 미로를 뺀 아무 칸으로 날아가요.", piggy:`쌓인 돈을 모두 가져가요. 지금 ${S.piggy}.`}[t];
     return info(`<h2>${SPNAME[t]}</h2><p class="lead">${d}</p>`, "닫기");
   }
   const s = sq(i), b = S.b[i];
-  const st = !b ? "빈 땅" : b.st === "wip" ? `공사 중 (다음 사람은 ${fullCost(i) / 2}로 도전)` : `${esc(S.players[b.o].name)}의 건물`;
-  return info(`<h2>${s.name}</h2><div class="money"><span>문제</span><span>${s.type === "basic" ? "기본 · 객관식" : "심화 · 말로 답하기"}</span><span>교과서</span><span>${s.page}</span><span>건설비 · 통행료</span><span>${fullCost(i)} · ${tollOf(i)}</span><span>지금</span><span>${st}</span></div>`, "닫기");
+  const st = !b ? "빈 땅" : b.st === "wip" ? `공사 중 (다음 사람은 ${fullCost(i) / 2}로 도전)` : `${esc(S.players[b.o].name)}의 ${LV_NAME[lvOf(i)]}`;
+  return info(`<h2>${s.name}</h2><div class="money"><span>문제</span><span>${s.type === "basic" ? "기본 · 객관식" : "심화 · 말로 답하기"}</span><span>교과서</span><span>${s.page}</span><span>건설비(증축비)</span><span>${fullCost(i)}</span><span>통행료 집 · 빌딩 · 랜드마크</span><span>${TOLLS[s.type].join(" · ")}</span><span>지금</span><span>${st}</span></div>`, "닫기");
 }
 
 /* ---------- 선생님 메뉴 ---------- */
@@ -919,12 +993,14 @@ function showRules(){
    <li><b>차례</b> 주사위 2개를 굴려 합만큼 가요. 출발점을 지나면 월급 ${SALARY}.</li>
    <li><b>질문 칸</b> 건설에 도전하면 문제가 열리고 1분이 시작돼요. 교과서를 펴고 찾아도 돼요. 기본은 객관식(태블릿 채점), 심화는 말로 답하고 모둠 친구들이 O/X로 판정해요(같은 표면 성공).</li>
    <li><b>건설</b> 기본 10(통행료 5), 심화 20(통행료 15). 실패하면 건설비의 절반을 잃고 ‘공사 중’이 돼요. 공사 중인 칸은 누구든 남은 절반만 내고 도전할 수 있어요.</li>
-   <li><b>남의 건물</b>에 서면 통행료를 내요. 돈이 모자라면 있는 만큼만 내고 계속해요.</li>
+   <li><b>증축</b> 내 건물에 다시 서면 그 칸 문제를 하나 더 맞혀 집 → 빌딩 → 랜드마크로 올려요. 증축비는 건설비와 같고, 실패하면 절반을 잃어요. 통행료: 기본 5 · 10 · 20, 심화 15 · 25 · 40.</li>
+   <li><b>남의 건물</b>에 서면 통행료를 내요. 돈이 모자라면 있는 만큼만 내고, 모자란 돈은 은행이 대신 내 줘요.</li>
+   <li><b>장학금</b> 내 차례에 돈이 0이면 맞춤법·낱말 문제 1개! 맞히면 +15, 틀려도 +5.</li>
    <li><b>아르바이트</b> 맞춤법 1문제. 맞히면 +5, 내 돈이 20보다 적으면 +10.</li>
    <li><b>저축</b> 5를 내면 돼지저금통에 10이 쌓여요. <b>돼지저금통</b> 칸에 서면 모두 가져가요(처음 10).</li>
    <li><b>책 속 미로</b> 최대 2턴 갇혀요. 더블이나 맞춤법·낱말 문제 정답이면 탈출.</li>
    <li><b>랜덤 도약</b> 원하면 미로를 뺀 아무 칸으로 날아가요. 안 하면 다음에 여기서 출발.</li>
-   <li><b>미션 카드</b> 교실 미션(성공 +5) 또는 행운 카드.</li>
+   <li><b>미션 카드</b> 교실 미션에 성공하면 보상 룰렛(+10 · +15 · +20 · 면제권 · 잭팟)! 잭팟은 저금통의 절반이고, 20보다 적으면 은행이 20까지 채워 줘요.</li>
    <li><b>돈</b> 내 카드에 동전이 쌓여요. 금화 10, 은화 5, 동전 1.</li>
    <li><b>끝</b> 시간이 끝나면 그 라운드까지 하고, 현금 + 건물값이 가장 많은 사람이 이겨요. 판정이 이상하면 선생님을 불러요.</li></ol>`, "닫기");
 }
@@ -934,7 +1010,7 @@ function finishGame(){
   S.over = true; busy = false; save(); clearSave();
   const rows = S.players.map((p, k) => {
     const bl = Object.entries(S.b).filter(([i, b]) => b.st === "built" && b.o === k);
-    const val = bl.reduce((s, [i]) => s + fullCost(+i), 0);
+    const val = bl.reduce((s, [i]) => s + valueOf(+i), 0);
     return {p, val, n:bl.length, tot:p.cash + val};
   }).sort((a, b) => b.tot - a.tot || b.n - a.n);
   let rank = 0, prev = null;
