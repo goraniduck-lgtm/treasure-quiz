@@ -127,6 +127,11 @@
 
   function viewQuestion() {
     const q = Q.questions[state.q], qk = "q" + state.q;
+    if (!q || !q.text) {                          // 문제를 만들지 못한 경우: 빈 화면 대신 다시 불러오기
+      app.innerHTML = `${banner()}${bar()}<div class="card wait"><h2>문제를 불러오지 못했어요</h2><button class="go" id="rl">다시 불러오기</button></div>`;
+      document.getElementById("rl").addEventListener("click", () => location.replace(location.pathname + "?r=" + Date.now()));
+      return;
+    }
     const d = drafts[qk] || "";
     app.innerHTML = `${banner()}${bar()}
       <div class="card">
@@ -218,5 +223,9 @@
   }
 
   // ---------- start ----------
+  // 새 버전이 올라오면 새로고침: 처음 열 때, 그리고 2분마다(문제를 푸는 중이 아닐 때만)
+  const idleNow = () => { const c = document.getElementById("check"); return !(c && !c.disabled) && !document.querySelector(".tcard:not([disabled]), .tgt:not([disabled])"); };
+  L.checkUpdate();
+  setInterval(() => L.checkUpdate(idleNow), 120000);
   if (me && me.code && me.sid && me.name) enter(); else viewJoin();
 })();

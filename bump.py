@@ -9,4 +9,8 @@ for name in ("index.html", "teacher.html", "worksheet/index.html", "worksheet/te
     s = p.read_text(encoding="utf-8")
     s = re.sub(r'((?:src|href)="(?!https?:)[^"?]+\.(?:js|css))(?:\?v=\d+)?"', rf'\1?v={v}"', s)
     p.write_text(s, encoding="utf-8")
+# 앱 버전: 열려 있던 예전 화면이 새 버전을 알아채고 스스로 새로고침하게 한다
+(root / "version.json").write_text('{"v": "%s"}\n' % v, encoding="utf-8")
+c = root / "common.js"
+c.write_text(re.sub(r'L\.APP_VERSION = "\d*";', f'L.APP_VERSION = "{v}";', c.read_text(encoding="utf-8")), encoding="utf-8")
 print("버전", v)

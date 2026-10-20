@@ -2,6 +2,27 @@
 (function () {
   "use strict";
   const L = (window.LQ = {});
+  L.APP_VERSION = "20261020121500";
+
+  /** 사이트가 새 버전이면 한 번 새로고침 (오래 열어 둔 태블릿이 예전 프로그램으로 남지 않게) */
+  L.checkUpdate = async (canReload) => {
+    try {
+      const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) return false;
+      const v = String((await res.json()).v || "");
+      if (!v || v <= L.APP_VERSION) return false;
+      let tried = null; try { tried = sessionStorage.getItem("lq-reload"); } catch (e) {}
+      if (tried === v) return false;                   // 같은 버전으로 이미 한 번 시도했으면 반복하지 않음
+      if (canReload && !canReload()) return true;      // 지금은 새로고침하기 곤란한 순간
+      try { sessionStorage.setItem("lq-reload", v); } catch (e) {}
+      location.replace(location.pathname + "?r=" + v + location.hash);
+      return true;
+    } catch (e) { return false; }
+  };
+  /** 문제 틀 생성기가 아직 없으면 불러오기 */
+  L.ensureGenerators = () => (L.instantiate ? Promise.resolve() : new Promise(res => {
+    const s = document.createElement("script"); s.src = "generators.js?t=" + Date.now(); s.onload = s.onerror = () => res(); document.head.appendChild(s);
+  }));
 
   // ---------- helpers ----------
   L.esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -38,6 +59,7 @@
   L.loadRoomQuiz = async room => {
     const files = Array.isArray(room.quiz) ? room.quiz : [room.quiz];
     const parts = await Promise.all(files.map(L.loadQuiz));
+    if (parts.some(p => p.questions.some(q => q.gen || q.shuffle))) await L.ensureGenerators();
     const Q = parts[0];
     const all = [].concat(...parts.map(p => p.questions.map(q => Object.assign({ _src: p.title }, q))));
     Q.allQuestions = all;
@@ -217,7 +239,7 @@
     swap:     { name: "점수 바꾸기", weight: 6, desc: () => "친구와 점수 바꾸기", target: true },
     topMinus: { name: "1등 감점", weight: 10, desc: () => "1등 점수 -30점 (내가 1등이면 2등)" },
     // 아래 두 장은 내가 지금 1등일 때만 나옴
-    shield:   { name: "방어막", weight: 15, desc: () => "다음 공격 한 번 막기", leaderOnly: true },
+    shield:   { name: "방어막", weight: 15, desc: () => "방어막 3개: 공격 3번 막기", leaderOnly: true },
     taxAll:   { name: "조금씩 가져오기", weight: 12, desc: () => "모든 친구에게서 3점씩", leaderOnly: true }
   };
   L.TAX = 3;
@@ -229,7 +251,8 @@
   L.EFFECT_ICON = { add: "coin", minus: "bomb", stealSome: "magnet", stealAll: "bag", swap: "swap", topMinus: "crownx", shield: "shield", taxAll: "tax", blocked: "shield" };
   /** 효과 카드 한 장 뽑기. enabled = {add:true, ...} */
   L.drawEffect = (enabled, ctx) => {
-    const keys = L.EFFECT_KEYS.filter(k => (!enabled || enabled[k] !== false) && (!L.EFFECTS[k].leaderOnly || (ctx && ctx.leader)));
+    let keys = L.EFFECT_KEYS.filter(k => (!enabled || enabled[k] !== false) && (!L.EFFECTS[k].leaderOnly || (ctx && ctx.leader)));
+    if (!keys.length) keys = ["add"];
     const pickK = pickWeighted(keys.map(k => ({ k, weight: L.EFFECTS[k].weight }))).k;
     if (pickK === "add") { const a = pick([10, 10, 15, 15, 20, 30]); return { k: "add", amount: a, icon: a >= 30 ? "crown" : a >= 20 ? "gem" : a >= 15 ? "ruby" : "coin" }; }
     if (pickK === "minus") return { k: "minus", amount: pick([10, 10, 20]), icon: "bomb" };

@@ -35,7 +35,7 @@
       case "stealAll": return `${a} → ${b} 점수 전부(${v}점) 가져가기`;
       case "swap": return `${a} ⇄ ${b} 점수 바꾸기`;
       case "topMinus": return `${a} → 1등 ${b} 감점 -${Math.abs((x.d || {})[x.target] || 0)}`;
-      case "shield": return `${a} 방어막 준비`;
+      case "shield": return `${a} 방어막 3개 준비`;
       case "blocked": return `${b}의 방어막이 ${a}의 공격을 막음`;
       case "taxAll": return `${a} 모두에게서 조금씩 가져가기 +${v}`;
       default: return "";
@@ -135,7 +135,12 @@
       if (cur.mode === "pick") return viewPick(sc, cur);
       if (cur.mode === "target") return viewTarget(sc, cur);
       if (cur.mode === "apply") { apply(cur, null); return; }
-      viewQuestion(sc, cur.count);
+      try { viewQuestion(sc, cur.count); }
+      catch (e) {                                   // 문제를 그리지 못하면 빈 화면 대신 안내
+        app.innerHTML = wrap(sc, `<div class="card wait"><h2>문제를 불러오지 못했어요</h2><p class="small">${esc(String(e && e.message || e))}</p>
+          <button class="go" id="rl">다시 불러오기</button></div>`);
+        document.getElementById("rl").addEventListener("click", () => location.replace(location.pathname + "?r=" + Date.now()));
+      }
     }
 
     function viewLobby(sc) {
@@ -148,7 +153,10 @@
     }
 
     function viewQuestion(sc, count) {
-      const qi = seqAt(count), q = qFor(qi, count);
+      let qi = seqAt(count);
+      if (!Q.templates[qi]) { L.store.del(SEQ_KEY); qi = seqAt(count); }      // 예전 방의 순서가 남아 있으면 새로
+      const q = qFor(qi, count);
+      if (!q || !q.text) throw new Error("문제 " + (qi + 1) + "번을 만들 수 없어요");
       draft = "";
       app.innerHTML = wrap(sc, `<div class="card">
         ${L.questionHead(Q, q, count + 1)}
@@ -162,6 +170,10 @@
 
     async function send(count, qi) {
       if (busy || draft === "" || !running()) return; busy = true;
+      try { await sendInner(count, qi); } finally { busy = false; }
+      render();
+    }
+    async function sendInner(count, qi) {
       const q = qFor(qi, count), ok = L.isCorrect(q, draft);
       const ent = { qi, given: String(draft), correct: ok, pts: ok ? L.ptsOf(Q, q) : 0, at: B.now() };
       if (ok) { const st = streakNow() + 1, cb = L.comboBonus(st); if (cb) { ent.combo = cb; ent.streak = st; } }
@@ -171,8 +183,7 @@
         ent.cards = Array.from({ length: CARDS }, () => L.drawEffect(R.settings && R.settings.effects, { leader }));
       }
       if (!ok) showFb = { qi, count, given: draft };
-      try { await B.set(base + "/log/" + me.sid + "/" + nkey(count), ent); } finally { busy = false; }
-      render();
+      await B.set(base + "/log/" + me.sid + "/" + nkey(count), ent);
     }
 
     function viewFeedback(sc) {
@@ -230,7 +241,8 @@
     }
 
     async function apply(cur, target) {
-      if (busy) return; busy = true;
+      if (busy) { setTimeout(() => { lastKey = ""; render(); }, 400); return; }   // 다른 저장이 끝나면 다시
+      busy = true;
       try {
         const sc = L.selfScores(R);
         if (cur.eff.k === "topMinus") {      // 나를 뺀 1등
@@ -240,8 +252,8 @@
         const k = cur.eff.k, shields = R.shields || {}, id = me.sid + "-" + cur.k;
         let d = {}, kind = k, msg;
         if (k === "shield") {
-          await B.set(base + "/shields/" + me.sid, (shields[me.sid] || 0) + 1);
-          msg = "방어막이 생겼어요! 다음 공격 한 번을 막아요.";
+          await B.set(base + "/shields/" + me.sid, (shields[me.sid] || 0) + 3);
+          msg = "방어막 3개가 생겼어요! 공격을 3번 막아요.";
         } else if (target && L.ATTACKS.includes(k) && (shields[target] || 0) > 0) {
           await B.set(base + "/shields/" + target, shields[target] - 1);          // 상대 방어막 하나 소모
           kind = "blocked"; msg = `${nameOf(R, target)}의 방어막에 막혔어요!`;
