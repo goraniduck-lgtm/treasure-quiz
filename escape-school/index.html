@@ -980,6 +980,121 @@ const HARD = [
   ex:"앞의 수에 2를 곱하고 1을 더해: 31×2+1=63. 차이도 2, 4, 8, 16, 32로 두 배씩 커져."}
 ];
 
+/* ---------- 심화 봉인: 회차마다 새로 만들기 (봉인마다 유형 2~3가지, 직전 회차와 다른 유형·수치) ---------- */
+function opts4(ans, cands, draw0){
+  const out=[[String(ans),"c",draw0]], seen=new Set([String(ans)]);
+  for (const c of cands){ const lab=String(c[0]);
+    if (seen.has(lab) || /NaN|undefined|Infinity|^-|^0°|^0명|^0$/.test(lab) || (typeof c[0]==="number" && c[0]<=0)) continue;
+    seen.add(lab); out.push([lab,"w",c[2],c[1]]); if (out.length===4) break; }
+  return out.length===4 ? out : null;
+}
+/* 숫자 뒤 조사: 읽는 소리의 받침으로 고르기 (40→사십→으로, 16→십육→을) */
+function lastSound(n){ n=Math.abs(n); const u=n%10; if (u) return ["","일","이","삼","사","오","육","칠","팔","구"][u];
+  if (n%100) return "십"; if (n%1000) return "백"; if (n%10000) return "천"; return "만"; }
+function jong(n){ const c=lastSound(n).charCodeAt(0)-0xAC00; return c%28; }
+const eul=n=>jong(n)?"을":"를", ro=n=>{ const j=jong(n); return j===0||j===8?"로":"으로"; }, ieot=n=>jong(n)?"이었다":"였다";
+const SEALS=[
+ [ /* 첫째 봉인 · 큰 수 */
+  {id:"rev", f:()=>{ const e=pk([8,9,10,11]), J=R(1,5)*10**e, k=R(3,7), T=R(2,9)*10**(e+3)+R(1,9)*10**(e+2), A=T-k*J;
+    return {q:`어떤 수에서 ${mixKo(J)}씩 ${k}번 뛰어 센 수는 ${mixKo(T)}이다. 어떤 수는?`,
+      opts:opts4(mixKo(A),[[mixKo(T-(k-1)*J),"뛰어 센 횟수를 하나 덜 셌어."],[mixKo(T+k*J),"처음 수를 구하려면 거꾸로 빼야 해."],[mixKo(T-k*J/10),"한 자리 낮은 자리에서 뺐어."],[mixKo(T-k*J*10),"한 자리 높은 자리에서 뺐어."]]),
+      ex:`${mixKo(J)}씩 ${k}번이면 ${mixKo(k*J)}. 거꾸로 빼면 ${mixKo(T)} − ${mixKo(k*J)} = ${mixKo(A)}`}; }},
+  {id:"count", f:()=>{ const e=pk([7,8,9,10]), J=R(2,5)*10**e, n=R(6,14), A=R(1,9)*10**(e+2)+R(1,9)*10**(e+1), B=A+n*J;
+    return {q:`${mixKo(A)}에서 ${mixKo(J)}씩 뛰어 세어 ${mixKo(B)}까지 가려면 몇 번 뛰어 세어야 할까?`,
+      opts:opts4(`${n}번`,[[`${n+1}번`,"처음 수까지 세었어. 뛰어 센 횟수만 세야 해."],[`${n-1}번`,"한 번 덜 셌어. 두 수의 차를 뛰는 수로 나눠 봐."],[`${n*10}번`,"뛰는 수의 자리를 한 자리 낮게 봤어."]]),
+      ex:`두 수의 차: ${mixKo(B)} − ${mixKo(A)} = ${mixKo(n*J)}. ${mixKo(J)}씩 ${n}번 뛰면 ${mixKo(n*J)}만큼 커져.`}; }},
+  {id:"second", f:()=>{ const d=shuffle([0,1,2,3,4,5,6,7,8,9]).slice(0,8).sort((x,y)=>y-x); const big=d.join("");
+    const sw=(s,i,j)=>{ const a=[...s]; [a[i],a[j]]=[a[j],a[i]]; return a.join(""); };
+    const L=d.length, second=sw(big,L-1,L-2), third=d.slice(0,L-3).join("")+d[L-2]+d[L-3]+d[L-1];
+    return {q:`수 카드 여덟 장(${shuffle(d).join(", ")})을 모두 한 번씩 써서 만들 수 있는 여덟 자리 수 중 두 번째로 큰 수는?`,
+      opts:opts4(second,[[big,"가장 큰 수야. 두 번째로 큰 수는 맨 끝 두 자리만 바꾸면 돼."],[third,"세 번째로 큰 수야. 가장 낮은 두 자리만 바꿔 봐."],[sw(big,0,1),"높은 자리를 바꾸면 수가 많이 작아져. 가장 낮은 자리부터 바꿔 봐."]]),
+      ex:`가장 큰 수는 큰 숫자부터 차례로: ${big}. 두 번째로 큰 수는 일의 자리와 십의 자리만 바꾼 ${second}`}; }}
+ ],
+ [ /* 둘째 봉인 · 각도 */
+  {id:"bigclock", f:()=>{ const h=pk([1,2,4,5,7,8,10,11]), s=Math.min(30*h,360-30*h), b=360-s;
+    return {q:`시계가 정확히 ${h}시를 가리킬 때, 두 바늘이 이루는 각 중 큰 쪽의 각은 몇 도?`, vis:{type:"clock",h},
+      opts:opts4(`${b}°`,[[`${s}°`,"작은 쪽 각이야. 큰 쪽은 360°에서 빼야 해."],[`${180+s}°`,"한 바퀴는 360°야. 180°를 기준으로 계산했어."],[`${b+30}°`,"숫자 한 칸(30°)을 더 셌어."],[`${b-30}°`,"숫자 한 칸(30°)을 덜 셌어."]]),
+      ex:`숫자 한 칸은 30°. 작은 쪽은 ${s}°, 큰 쪽은 360° − ${s}° = ${b}°`}; }},
+  {id:"extext", f:()=>{ let A,C; do{ A=r5(35,75); C=r5(35,75); }while(A+C>=150); const B=180-A-C, eB=180-B, eC=180-C;
+    return {q:`삼각형의 한 각이 ${A}°이고, 다른 꼭짓점의 바깥쪽 각이 ${eB}°이다. 나머지 한 각의 바깥쪽 각은 몇 도?`,
+      opts:opts4(`${eC}°`,[[`${C}°`,"안쪽 각을 구했어. 그 각의 바깥쪽 각은 180°에서 빼야 해."],[`${180-A-eB>0?180-A-eB:eB-A+10}°`,"바깥쪽 각을 안쪽 각처럼 썼어."],[`${eC+10}°`,"계산을 다시 확인해."],[`${360-A-eB}°`,"삼각형은 180°야. 360°로 계산했어."]]),
+      ex:`안쪽 각: 180° − ${eB}° = ${B}°. 나머지 안쪽 각: 180° − ${A}° − ${B}° = ${C}°. 그 바깥쪽 각: 180° − ${C}° = ${eC}°`}; }},
+  {id:"quadeq", f:()=>{ let a,b,x; do{ a=r5(60,140); b=r5(60,140); x=(360-a-b)/2; }while(x%5||x<50||x>130);
+    return {q:`사각형의 네 각 중 두 각은 ${a}°, ${b}°이고, 나머지 두 각의 크기는 서로 같다. 같은 두 각 중 한 각은 몇 도?`,
+      opts:opts4(`${x}°`,[[`${2*x}°`,"두 각을 합한 크기야. 한 각을 물었어."],[`${(180-a-b)>0?180-a-b:x+20}°`,"사각형은 360°야. 180°로 계산했어."],[`${x+10}°`,"계산을 다시 확인해."],[`${x-10}°`,"두 각이 같으니 남은 각을 반으로 나눠야 해. 계산을 다시 확인해."]]),
+      ex:`360° − ${a}° − ${b}° = ${2*x}°. 같은 두 각이니 ${2*x}° ÷ 2 = ${x}°`}; }}
+ ],
+ [ /* 셋째 봉인 · 곱셈과 나눗셈 */
+  {id:"wrongdiv", f:()=>{ for(;;){ const d1=R(31,49), q1=R(11,19), r1=R(1,d1-1), x=d1*q1+r1, d2=R(14,29); if (d2===d1||x>999) continue; const q2=Math.floor(x/d2), r2=x%d2; if (!r2) continue;
+    const o=opts4(`몫 ${q2}, 나머지 ${r2}`,[[`몫 ${q1}, 나머지 ${r1}`,"잘못 계산한 결과야. 먼저 어떤 수를 구해야 해."],[`몫 ${q2-1}, 나머지 ${r2+d2}`,`나머지 ${r2+d2}가 나누는 수 ${d2}보다 커.`],[`몫 ${q2}, 나머지 ${r2+1}`,"어떤 수를 구할 때 나머지를 다시 확인해."],[`몫 ${q2+1}, 나머지 ${r2}`,"곱해서 확인해 봐."]]);
+    if (o) return {q:`어떤 수를 ${d2}${ro(d2)} 나누어야 하는데 잘못하여 ${d1}${ro(d1)} 나누었더니 몫이 ${q1}, 나머지가 ${r1}${ieot(r1)}. 바르게 계산하면 몫과 나머지는?`, opts:o,
+      ex:`어떤 수 = ${d1}×${q1}+${r1} = ${x}. ${x}÷${d2} → ${d2}×${q2}=${d2*q2}, ${x}−${d2*q2}=${r2}`}; } }},
+  {id:"wrongmul", f:()=>{ for(;;){ const d=R(13,29), q=R(12,30), r=R(1,d-1), x=d*q+r; if (x>999||x%10===0) continue; const v=x*d;
+    const o=opts4(v,[[q*d,"잘못 나눈 몫에 곱했어. 먼저 어떤 수를 구해야 해."],[noShift(x,d),"십의 자리 곱을 한 칸 왼쪽으로 옮기지 않았어."],[v+100,"받아올림을 다시 확인해."],[x+d,"곱해야 할 것을 더했어."]]);
+    if (o) return {q:`어떤 수에 ${d}${eul(d)} 곱해야 할 것을 잘못하여 ${d}${ro(d)} 나누었더니 몫이 ${q}, 나머지가 ${r}${ieot(r)}. 바르게 계산한 값은?`, opts:o,
+      ex:`어떤 수 = ${d}×${q}+${r} = ${x}. 바르게 계산하면 ${x}×${d} = ${v}`}; } }},
+  {id:"pack", f:()=>{ for(;;){ const a=R(120,380), b=R(12,28), tot=a*b, d=R(26,48), q=Math.floor(tot/d), r=tot%d; if (!r||tot>9999) continue;
+    const o=opts4(`${q+1}개`,[[`${q}개`,`남은 ${r}개도 담으려면 상자가 하나 더 필요해.`],[`${Math.ceil(a/d)*b}개`,"한 봉지씩 따로 나누면 상자가 남아. 전체를 먼저 구해야 해."],[`${q+2}개`,"상자를 하나 더 셌어."],[`${r}개`,"나머지가 아니라 상자 수를 물었어."]]);
+    if (o) return {q:`콩이 한 봉지에 ${a}알씩 ${b}봉지 있다. 이 콩을 한 상자에 ${d}알씩 모두 담으려면 상자는 적어도 몇 개 필요할까?`, opts:o,
+      ex:`전체 ${a}×${b}=${tot}알. ${tot}÷${d} = 몫 ${q}, 나머지 ${r} → 남은 ${r}알을 담을 상자 1개 더 = ${q+1}개`}; } }}
+ ],
+ [ /* 넷째 봉인 · 평면도형의 이동 (거꾸로 되돌리기) */
+  {id:"undo2", f:()=>{ const sh=randShape(), a=pk(["fx","fy"]), b=pk(["r90","r180","r270"]), ms=Math.random()<.5?[a,b]:[b,a], after=applyMoves(sh,ms);
+    const others=shuffle(["fx","fy","r90","r180","r270"]).map(m=>applyMoves(sh,[m])).filter(s=>keyOf(s)!==keyOf(sh)&&keyOf(s)!==keyOf(after)).slice(0,2);
+    return {q:`어떤 모양을 ${MOVE_NAME[ms[0]]}를 하고, 이어서 ${MOVE_NAME[ms[1]]}를 했더니 그림과 같아졌다. 처음 모양은?`,
+      vis:{type:"grid",sh:after,label:"움직인 뒤의 모양"},
+      opts:[["이 모양","c",{grid:sh}],["이 모양","w",{grid:after},"움직인 뒤의 모양을 그대로 골랐어. 거꾸로 되돌려야 해."],...others.map(s=>["이 모양","w",{grid:s},"이 모양을 움직이면 그림과 달라져. 마지막 움직임부터 거꾸로 되돌려 봐."])],
+      ex:`마지막 움직임부터 거꾸로: ${MOVE_NAME[ms[1]]}의 반대, 그다음 ${MOVE_NAME[ms[0]]}의 반대를 하면 처음 모양이 나와.`, ms}; }},
+  {id:"undo3", f:()=>{ const sh=randShape(), m=pk(["r90","r270"]), m2=pk(["fx","fy"]), m3=pk(["r90","r180","r270"]), after=applyMoves(sh,[m,m2,m3]);
+    const others=["id","fx","fy","r90","r180","r270","fx r90","fx r270"].map(x=>applyMoves(sh,x==="id"?[]:x.split(" "))).filter(s=>keyOf(s)!==keyOf(sh)&&keyOf(s)!==keyOf(after));
+    const pick=shuffle(others).slice(0,2);
+    return {q:`어떤 모양을 ${MOVE_NAME[m]} → ${MOVE_NAME[m2]} → ${MOVE_NAME[m3]}, 차례로 세 번 움직였더니 그림과 같아졌다. 처음 모양은?`, vis:{type:"grid",sh:after,label:"움직인 뒤의 모양"},
+      opts:[["이 모양","c",{grid:sh}],["이 모양","w",{grid:after},"움직인 뒤의 모양을 그대로 골랐어. 거꾸로 되돌려야 해."],...pick.map(s=>["이 모양","w",{grid:s},"이 모양을 움직이면 그림과 달라져. 마지막 움직임부터 거꾸로 되돌려 봐."])],
+      ex:`마지막 움직임부터 거꾸로: ${MOVE_NAME[m3]}의 반대 → ${MOVE_NAME[m2]}(한 번 더 뒤집기) → ${MOVE_NAME[m]}의 반대.`, ms:[m,m2,m3]}; }}
+ ],
+ [ /* 다섯째 봉인 · 막대그래프 */
+  {id:"sumdiff", f:()=>{ for(;;){ const u=pk([2,5,10]), k=R(2,5), small=u*R(2,6), big=small+k*u, T=big+small; if (big>u*10) continue;
+    const o=opts4(`${big}명`,[[`${small}명`,"더 적은 쪽(겨울)을 구했어."],[`${k*u}명`,"두 막대의 차이야. 가을 학생 수를 물었어."],[`${T/2}명`,"막대 길이가 다르니 똑같이 나누면 안 돼."],[`${big+u}명`,"칸 수를 다시 세어 봐."]]);
+    if (o) return {q:`세로 눈금 한 칸이 ${u}명인 막대그래프에서 가을 막대가 겨울 막대보다 ${k}칸 더 길다. 가을과 겨울을 좋아하는 학생이 모두 ${T}명이면, 가을을 좋아하는 학생은 몇 명?`, opts:o,
+      ex:`${k}칸 차이 = ${u}×${k} = ${k*u}명. ${T}−${k*u}=${2*small}, ÷2 = ${small}명(겨울). 가을은 ${small}+${k*u}=${big}명`}; } }},
+  {id:"times", f:()=>{ for(;;){ const u=pk([2,5]), m=R(2,4), w=R(1,3), a=w*m; if (a>10) continue; const T=(a+w)*u;
+    const o=opts4(`${a*u}명`,[[`${w*u}명`,"적은 쪽(겨울)을 구했어."],[`${a}명`,`칸 수야. 한 칸은 ${u}명이야.`],[`${T/2}명`,`가을이 겨울의 ${m}배이니 똑같이 나누면 안 돼.`],[`${a*u+u}명`,"칸 수를 다시 세어 봐."]]);
+    if (o) return {q:`세로 눈금 한 칸이 ${u}명인 막대그래프에서 가을 막대의 길이는 겨울 막대의 ${m}배이다. 가을과 겨울을 좋아하는 학생이 모두 ${T}명이면, 가을을 좋아하는 학생은 몇 명?`, opts:o,
+      ex:`겨울을 1이라 하면 가을은 ${m}, 합은 ${m+1}. ${T}÷${m+1}=${w*u}명(겨울), 가을은 ${w*u}×${m}=${a*u}명`}; } }},
+  {id:"missing2", f:()=>{ for(;;){ const u=pk([5,10]), c=shuffle([2,3,4,5,6,7,8,9]).slice(0,4), T=c.reduce((x,y)=>x+y,0)*u, d=(c[2]-c[3])*u; if (d<=0) continue;
+    const o=opts4(`${c[2]*u}명`,[[`${c[3]*u}명`,"더 적은 쪽(겨울)을 구했어."],[`${c[2]}명`,`칸 수야. 한 칸은 ${u}명이야.`],[`${(T-(c[0]+c[1])*u)/2}명`,"두 계절의 수가 다르니 똑같이 나누면 안 돼."],[`${c[2]*u+u}명`,"계산을 다시 확인해."]]);
+    if (o) return {q:`세로 눈금 한 칸이 ${u}명인 막대그래프에서 봄은 ${c[0]}칸, 여름은 ${c[1]}칸이다. 가을과 겨울 막대는 지워졌는데, 가을이 겨울보다 ${d}명 더 많고 조사한 학생은 모두 ${T}명이다. 가을을 좋아하는 학생은 몇 명?`, opts:o,
+      ex:`봄+여름 = ${(c[0]+c[1])*u}명. 가을+겨울 = ${T}−${(c[0]+c[1])*u} = ${(c[2]+c[3])*u}명. (${(c[2]+c[3])*u}+${d})÷2 = ${c[2]*u}명`}; } }}
+ ],
+ [ /* 마지막 봉인 · 규칙 찾기 */
+  {id:"affine", f:()=>{ for(;;){ const a=pk([2,3]), b=pk([1,-1,2]), s0=R(1,4); const s=[s0]; for(let i=0;i<5;i++) s.push(s[i]*a+b); if (s[4]<=s[3]||s[5]>2000) continue;
+    const v=s[5], d=s[4]-s[3];
+    const o=opts4(v,[[s[4]+d,"차이가 일정하지 않아. 앞의 수와 몇 배 관계인지 봐."],[s[4]*a,`${a}배 한 뒤 ${b>0?b+"을(를) 더하는":(-b)+"을(를) 빼는"} 것을 잊었어.`],[s[4]+2*d,"차이만 두 배로 늘렸어. 앞의 수에 곱하는 규칙이야."],[v+1,"계산을 다시 확인해."]]);
+    if (o) return {q:`${s.slice(0,5).join(", ")}, □  — □에 알맞은 수는?`, opts:o, ex:`앞의 수에 ${a}를 곱하고 ${b>0?b+"을(를) 더해":(-b)+"을(를) 빼"}: ${s[4]}×${a}${b>0?"+"+b:"−"+(-b)}=${v}`}; } }},
+  {id:"fib", f:()=>{ const a=R(1,5), b=R(a+1,a+6); const s=[a,b]; for(let i=0;i<5;i++) s.push(s[i]+s[i+1]); const v=s[6];
+    return {q:`${s.slice(0,6).join(", ")}, □  — □에 알맞은 수는?`, opts:opts4(v,[[s[5]+(s[5]-s[4]),"차이가 일정하지 않아. 앞의 두 수와의 관계를 봐."],[s[5]*2,"2배 규칙이 아니야. 바로 앞 두 수를 더해 봐."],[v+1,"계산을 다시 확인해."],[s[5]+s[3],"바로 앞의 두 수를 더해야 해."]]),
+      ex:`앞의 두 수를 더하면 다음 수: ${s[4]}+${s[5]}=${v}`}; }},
+  {id:"diffdbl", f:()=>{ const a=R(2,9), k=pk([1,2,3]); const s=[a]; for(let i=0;i<5;i++) s.push(s[i]+k*2**i); const v=s[5];
+    return {q:`${s.slice(0,5).join(", ")}, □  — □에 알맞은 수는?`, opts:opts4(v,[[s[4]+(s[4]-s[3]),"차이가 일정하지 않아. 차이끼리의 규칙을 봐."],[s[4]+(s[4]-s[3])+k,"차이가 일정하게 늘지 않아. 차이가 두 배씩 커져."],[v+k,"계산을 다시 확인해."],[s[4]*2,"앞의 수의 2배가 아니라, 차이가 2배씩 커지는 규칙이야."]]),
+      ex:`차이가 ${k}, ${2*k}, ${4*k}, ${8*k}… 로 두 배씩 커져. 다음 차이는 ${16*k} → ${s[4]}+${16*k}=${v}`}; }}
+ ]
+];
+const SEAL_TITLE=["첫째 봉인 · 큰 수","둘째 봉인 · 각도","셋째 봉인 · 곱셈과 나눗셈","넷째 봉인 · 평면도형의 이동","다섯째 봉인 · 막대그래프","마지막 봉인 · 규칙 찾기"];
+function makeSeals(prev){
+  prev=prev||[];
+  return SEALS.map((tpls,k)=>{
+    const last=prev[k]||{}, pool=tpls.filter(t=>t.id!==last.tid);
+    const tpl=pk(pool.length?pool:tpls);
+    let p; for(let n=0;n<30;n++){ p=tpl.f(); if (p && p.opts && sigOf(p)!==last.sig) break; }
+    return Object.assign(p,{t:SEAL_TITLE[k], tid:tpl.id});
+  });
+}
+function prepareSeals(){
+  const m=getMeta(); S.seals=makeSeals((S.prevSig&&S.prevSig.seal)||[]);
+  m.curSig=m.curSig||{}; m.curSig.seal=S.seals.map(s=>({tid:s.tid, sig:sigOf(s)})); putMeta(m);
+}
+const sealAt=i=>{ if (!S.seals) prepareSeals(); return S.seals[i]; };
+
 /* ---------- 경로 · 갈림길 ---------- */
 const ROUTE_TEXT = {gate:{name:"정문 길"}, roof:{name:"옥상 길"}, basement:{name:"지하 길"}};
 const ROUTES=[
@@ -1099,6 +1214,7 @@ function startRun(){
   S.hintId = show && !S.allDone ? nextHint(m) : null;
   putMeta(m);
   genScenes([0,1,2,3,4,5,7,8,9], S.tier);
+  prepareSeals();
   store.del(SAVE); S.mode="scene"; $lay.hidden=true; render();
 }
 /* 이전 버전 저장 이어 하기 */
@@ -1389,7 +1505,7 @@ function gateChoiceScreen(){
   window.scrollTo(0,0);
 }
 function hardScreen(){
-  const h = HARD[S.hard.i];
+  const h = sealAt(S.hard.i);
   $app.innerHTML = `${hud()}<div class="card seal">
     <div class="place"><span class="sealmark">봉인</span> ${esc(h.t)}</div>
     ${h.vis?visHTML(h.vis):""}
@@ -1399,8 +1515,8 @@ function hardScreen(){
   window.scrollTo(0,0);
 }
 function hardResultScreen(){
-  const h = HARD[S.hard.i], ok = S.hard.last==="c";
-  const closed = S.hard.wrong>=2, last = S.hard.i>=HARD.length-1;
+  const h = sealAt(S.hard.i), ok = S.hard.last==="c";
+  const closed = S.hard.wrong>=2, last = S.hard.i>=5;
   const btn = closed ? `<button class="next" type="button" data-act="hardEnd">문 밖으로 밀려난다</button>`
     : last ? `<button class="next" type="button" data-act="hardEnd">봉인이 열린다</button>` : `<button class="next" type="button" data-act="hardNext">다음 봉인으로</button>`;
   $app.innerHTML = `${hud()}<div class="card seal">
@@ -1611,7 +1727,7 @@ function pick(k){
       S.log.push({q:sc.retry.q, ok:false, pick:optLabel(o), ans:ansLabel(sc.retry.opts[0]), why:o[3], ex:sc.retry.ex}); }
     S.mode="retryResult";
   } else if (S.mode==="hard"){
-    const h = HARD[S.hard.i], o = h.opts[k]; if (!o) return;
+    const h = sealAt(S.hard.i), o = h.opts[k]; if (!o) return;
     S.hard.last = o[1];
     if (o[1]!=="c"){ S.hard.wrong++; S.log.push({q:h.q, ok:false, pick:optLabel(o), ans:ansLabel(h.opts[0]), ex:h.ex}); }
     else S.hard.ok++;
@@ -1650,7 +1766,7 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape") $lay.hidden=true;
 
 /* 테스트용 */
 window.__vis = visObj;
-window.__game = {SCENES, ENDINGS, TYPES, HARD, cur:()=>cur(), decideEnding:()=>decideEnding(), getMeta, makeP, sigOf, applyMoves, keyOf, get S(){return S;}, set S(v){S=v;}, _unlock(){ lock=false; }};
+window.__game = {SCENES, ENDINGS, TYPES, HARD, SEALS, makeSeals, cur:()=>cur(), decideEnding:()=>decideEnding(), getMeta, makeP, sigOf, applyMoves, keyOf, get S(){return S;}, set S(v){S=v;}, _unlock(){ lock=false; }};
 render();
 })();
 
