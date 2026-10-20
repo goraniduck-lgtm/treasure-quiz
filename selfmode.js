@@ -16,6 +16,7 @@
     if (e.k === "stealSome") { const a = Math.floor(t * STEAL_RATE); return { [me]: a, [target]: -a }; }
     if (e.k === "stealAll") return { [me]: t, [target]: -t };
     if (e.k === "swap") return { [me]: t - m, [target]: m - t };
+    if (e.k === "topMinus") { const a = Math.min(e.amount || L.TOP_MINUS, t); return a > 0 ? { [target]: -a } : {}; }
     return {};
   }
 
@@ -28,6 +29,7 @@
       case "stealSome": return `${a} → ${b} 점수 ${v}점 가져가기`;
       case "stealAll": return `${a} → ${b} 점수 전부(${v}점) 가져가기`;
       case "swap": return `${a} ⇄ ${b} 점수 바꾸기`;
+      case "topMinus": return `${a} → 1등 ${b} 감점 -${Math.abs((x.d || {})[x.target] || 0)}`;
       default: return "";
     }
   };
@@ -88,18 +90,24 @@
       return { mode: "question", count: keys.length };
     }
 
+    /** 지금까지 이어진 연속 정답 수 */
+    function streakNow() {
+      const lg = myLog(), keys = Object.keys(lg).sort(); let n = 0;
+      for (let i = keys.length - 1; i >= 0 && lg[keys[i]] && lg[keys[i]].correct; i--) n++;
+      return n;
+    }
     function bar(sc) {
-      const lg = Object.values(myLog()), right = lg.filter(e => e.correct).length;
+      const lg = Object.values(myLog()), right = lg.filter(e => e.correct).length, st = streakNow();
       return `<div class="bar"><div class="who">${esc(me.name)}</div>
         <div class="t-pill self-timer" id="timer">${R.state && R.state.phase === "run" ? L.fmtTime(remain()) : "–:––"}</div>
         <div class="score">${L.COIN}<span id="myscore">${Math.max(0, sc[me.sid] || 0)}점</span></div></div>
-        <p class="small">푼 문제 ${lg.length}개 · 맞힌 문제 ${right}개</p>`;
+        <p class="small">푼 문제 ${lg.length}개 · 맞힌 문제 ${right}개${st >= 2 ? ` · <b class="combo">${st}연속 정답!</b>` : ""}</p>`;
     }
     const wrap = (sc, inner) => `${banner()}<div id="toast" class="toast" hidden></div>${bar(sc)}${inner}`;
 
     function toast(msg) {
       const t = document.getElementById("toast"); if (!t) return;
-      t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3500);
+      t.textContent = L.fixJosa ? L.fixJosa(msg) : msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3500);
     }
 
     function render() {
@@ -148,6 +156,7 @@
       if (busy || draft === "" || !running()) return; busy = true;
       const q = qFor(qi, count), ok = L.isCorrect(q, draft);
       const ent = { qi, given: String(draft), correct: ok, pts: ok ? L.ptsOf(Q, q) : 0, at: B.now() };
+      if (ok) { const st = streakNow() + 1, cb = L.comboBonus(st); if (cb) { ent.combo = cb; ent.streak = st; } }
       if (ok) ent.cards = Array.from({ length: CARDS }, () => L.drawEffect(R.settings && R.settings.effects));
       if (!ok) showFb = { qi, count, given: draft };
       try { await B.set(base + "/log/" + me.sid + "/" + nkey(count), ent); } finally { busy = false; }
@@ -167,7 +176,8 @@
     function viewPick(sc, cur) {
       const cards = cur.e.cards;
       app.innerHTML = wrap(sc, `<div class="card">
-        <div class="fb ok"><div class="big">정답이에요! +${cur.e.pts}점</div></div>
+        <div class="fb ok"><div class="big">정답이에요! +${cur.e.pts}점</div>
+          ${cur.e.combo ? `<div class="combo-big">${cur.e.streak}연속 정답! 콤보 보너스 +${cur.e.combo}점</div>` : ""}</div>
         <h2 class="ttitle">카드를 하나 골라요</h2>
         <p class="tsub">점수가 늘어날 수도, 줄어들 수도, 친구 점수를 가져올 수도 있어요.</p>
         ${cdBox("카드를 골라요")}
@@ -210,12 +220,19 @@
     async function apply(cur, target) {
       if (busy) return; busy = true;
       try {
-        const sc = L.selfScores(R), d = effectDelta(cur.eff, me.sid, target, sc);
+        const sc = L.selfScores(R);
+        if (cur.eff.k === "topMinus") {      // 나를 뺀 1등
+          const others = Object.keys(R.students || {}).filter(id => id !== me.sid).sort((a, b) => (sc[b] || 0) - (sc[a] || 0));
+          target = others.length && (sc[others[0]] || 0) > 0 ? others[0] : null;
+        }
+        const d = effectDelta(cur.eff, me.sid, target, sc);
         const id = me.sid + "-" + cur.k;
         if (Object.keys(d).length) await B.set(base + "/ledger/" + id, { by: me.sid, target: target || null, kind: cur.eff.k, d, at: B.now() });
         await B.update(base + "/log/" + me.sid + "/" + cur.k, { done: true, target: target || null });
         const v = d[me.sid] || 0;
-        toast(cur.eff.k === "swap" ? `${nameOf(R, target)}와(과) 점수를 바꿨어요 (${v >= 0 ? "+" : ""}${v}점)` : v >= 0 ? `+${v}점!` : `${v}점…`);
+        toast(cur.eff.k === "swap" ? `${nameOf(R, target)}와(과) 점수를 바꿨어요 (${v >= 0 ? "+" : ""}${v}점)`
+          : cur.eff.k === "topMinus" ? (target ? `1등 ${nameOf(R, target)}의 점수 ${-(d[target] || 0)}점이 줄었어요!` : "아직 점수가 있는 친구가 없어요.")
+          : v >= 0 ? `+${v}점!` : `${v}점…`);
       } finally { busy = false; lastKey = ""; render(); }
     }
 
@@ -242,7 +259,9 @@
         if (seen.has(id)) return; seen.add(id);
         if (x && x.by !== me.sid && x.d && x.d[me.sid]) {
           const v = x.d[me.sid];
-          toast(x.kind === "swap" ? `${nameOf(R, x.by)}이(가) 나와 점수를 바꿨어요 (${v >= 0 ? "+" : ""}${v}점)` : `${nameOf(R, x.by)}이(가) 내 점수 ${-v}점을 가져갔어요!`);
+          toast(x.kind === "swap" ? `${nameOf(R, x.by)}이(가) 나와 점수를 바꿨어요 (${v >= 0 ? "+" : ""}${v}점)`
+            : x.kind === "topMinus" ? `${nameOf(R, x.by)}이(가) 1등 감점 카드를 썼어요! 내 점수 ${v}점`
+            : `${nameOf(R, x.by)}이(가) 내 점수 ${-v}점을 가져갔어요!`);
         }
       });
     }

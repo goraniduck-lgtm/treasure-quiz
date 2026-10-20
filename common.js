@@ -204,23 +204,29 @@
     bomb: SV(`<circle cx="28" cy="34" r="18" fill="#3A4560" stroke="#1D2A44" stroke-width="3"/><path d="M40 20 L46 12" stroke="#1D2A44" stroke-width="4" stroke-linecap="round"/><path d="M46 12 Q52 6 56 10" fill="none" stroke="#E0453B" stroke-width="3" stroke-linecap="round"/><circle cx="57" cy="8" r="4" fill="#F4B400"/><circle cx="21" cy="28" r="4" fill="#8A97B5"/>`),
     magnet: SV(`<path d="M10 6 H24 V32 Q24 40 32 40 Q40 40 40 32 V6 H54 V32 Q54 54 32 54 Q10 54 10 32 Z" fill="#E0453B" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><rect x="10" y="6" width="14" height="10" fill="#C9CED8" stroke="#1D2A44" stroke-width="3"/><rect x="40" y="6" width="14" height="10" fill="#C9CED8" stroke="#1D2A44" stroke-width="3"/>`),
     bag: SV(`<path d="M22 14 L18 4 H46 L42 14 Q60 26 58 42 Q56 54 32 54 Q8 54 6 42 Q4 26 22 14 Z" fill="#C8873A" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><path d="M22 14 H42" stroke="#1D2A44" stroke-width="3"/><text x="32" y="44" text-anchor="middle" font-size="20" font-family="Jua, sans-serif" fill="#FFE29A">ALL</text>`),
+    crownx: SV(`<polygon points="6,44 4,14 20,28 32,6 44,28 60,14 58,44" fill="#F4B400" stroke="#1D2A44" stroke-width="3" stroke-linejoin="round"/><rect x="6" y="44" width="52" height="8" rx="2" fill="#E09A00" stroke="#1D2A44" stroke-width="3"/><path d="M10 10 L54 52" stroke="#E0453B" stroke-width="7" stroke-linecap="round"/>`),
     swap: SV(`<circle cx="32" cy="29" r="25" fill="#BBD6F2" stroke="#1D2A44" stroke-width="3"/><path d="M16 22 H44 L38 15 M48 36 H20 L26 43" fill="none" stroke="#1D2A44" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`)
   });
   L.EFFECTS = {
     add:      { name: "점수 추가", weight: 45, desc: a => `+${a}점` },
     minus:    { name: "감점", weight: 15, desc: a => `-${a}점` },
-    stealSome:{ name: "일부 가져오기", weight: 18, desc: () => "친구 점수 30% 가져오기", target: true },
-    stealAll: { name: "전부 가져오기", weight: 7, desc: () => "친구 점수 전부 가져오기", target: true },
-    swap:     { name: "점수 바꾸기", weight: 15, desc: () => "친구와 점수 바꾸기", target: true }
+    stealSome:{ name: "일부 가져오기", weight: 8, desc: () => "친구 점수 30% 가져오기", target: true },
+    stealAll: { name: "전부 가져오기", weight: 3, desc: () => "친구 점수 전부 가져오기", target: true },
+    swap:     { name: "점수 바꾸기", weight: 6, desc: () => "친구와 점수 바꾸기", target: true },
+    topMinus: { name: "1등 감점", weight: 10, desc: () => "1등 점수 -30점 (내가 1등이면 2등)" }
   };
+  L.TOP_MINUS = 30;
+  /** 연속 정답 콤보 보너스: 2연속 +10, 3연속 +20, 4연속 +30, 5연속부터 +50 */
+  L.comboBonus = n => (n >= 5 ? 50 : n === 4 ? 30 : n === 3 ? 20 : n === 2 ? 10 : 0);
   L.EFFECT_KEYS = Object.keys(L.EFFECTS);
-  L.EFFECT_ICON = { add: "coin", minus: "bomb", stealSome: "magnet", stealAll: "bag", swap: "swap" };
+  L.EFFECT_ICON = { add: "coin", minus: "bomb", stealSome: "magnet", stealAll: "bag", swap: "swap", topMinus: "crownx" };
   /** 효과 카드 한 장 뽑기. enabled = {add:true, ...} */
   L.drawEffect = enabled => {
     const keys = L.EFFECT_KEYS.filter(k => !enabled || enabled[k] !== false);
     const pickK = pickWeighted(keys.map(k => ({ k, weight: L.EFFECTS[k].weight }))).k;
     if (pickK === "add") { const a = pick([10, 10, 15, 15, 20, 30]); return { k: "add", amount: a, icon: a >= 30 ? "crown" : a >= 20 ? "gem" : a >= 15 ? "ruby" : "coin" }; }
     if (pickK === "minus") return { k: "minus", amount: pick([10, 10, 20]), icon: "bomb" };
+    if (pickK === "topMinus") return { k: "topMinus", amount: L.TOP_MINUS, icon: "crownx" };
     return { k: pickK, icon: { stealSome: "magnet", stealAll: "bag", swap: "swap" }[pickK] };
   };
   L.effectLabel = e => `${L.EFFECTS[e.k].name} · ${L.EFFECTS[e.k].desc(e.amount)}`;
@@ -229,7 +235,7 @@
   L.selfScores = R => {
     const sc = {};
     Object.keys(R.students || {}).forEach(id => (sc[id] = 0));
-    Object.entries(R.log || {}).forEach(([sid, ents]) => Object.values(ents || {}).forEach(e => { if (e) sc[sid] = (sc[sid] || 0) + (e.pts || 0); }));
+    Object.entries(R.log || {}).forEach(([sid, ents]) => Object.values(ents || {}).forEach(e => { if (e) sc[sid] = (sc[sid] || 0) + (e.pts || 0) + (e.combo || 0); }));
     Object.values(R.ledger || {}).forEach(x => Object.entries((x && x.d) || {}).forEach(([sid, v]) => { sc[sid] = (sc[sid] || 0) + (v || 0); }));
     return sc;
   };
