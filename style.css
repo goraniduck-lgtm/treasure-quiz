@@ -253,3 +253,4 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outl
 .cdbar i { display: block; height: 100%; background: var(--no); border-radius: 999px; }
 .combo { color: var(--no); font-weight: normal; font-family: var(--display); }
 .combo-big { font-family: var(--display); font-size: 1.5rem; color: #fff; background: var(--no); border-radius: 999px; padding: 4px 16px; }
+.shieldon { color: #1F7FB0; font-weight: normal; font-family: var(--display); }

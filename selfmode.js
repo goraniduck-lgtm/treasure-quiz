@@ -17,6 +17,11 @@
     if (e.k === "stealAll") return { [me]: t, [target]: -t };
     if (e.k === "swap") return { [me]: t - m, [target]: m - t };
     if (e.k === "topMinus") { const a = Math.min(e.amount || L.TOP_MINUS, t); return a > 0 ? { [target]: -a } : {}; }
+    if (e.k === "taxAll") {         // 모든 친구에게서 조금씩
+      const d = { [me]: 0 };
+      Object.keys(scores).forEach(id => { if (id === me) return; const a = Math.min(L.TAX, Math.max(0, scores[id] || 0)); if (a > 0) { d[id] = -a; d[me] += a; } });
+      return d[me] > 0 ? d : {};
+    }
     return {};
   }
 
@@ -30,6 +35,9 @@
       case "stealAll": return `${a} → ${b} 점수 전부(${v}점) 가져가기`;
       case "swap": return `${a} ⇄ ${b} 점수 바꾸기`;
       case "topMinus": return `${a} → 1등 ${b} 감점 -${Math.abs((x.d || {})[x.target] || 0)}`;
+      case "shield": return `${a} 방어막 준비`;
+      case "blocked": return `${b}의 방어막이 ${a}의 공격을 막음`;
+      case "taxAll": return `${a} 모두에게서 조금씩 가져가기 +${v}`;
       default: return "";
     }
   };
@@ -101,7 +109,7 @@
       return `<div class="bar"><div class="who">${esc(me.name)}</div>
         <div class="t-pill self-timer" id="timer">${R.state && R.state.phase === "run" ? L.fmtTime(remain()) : "–:––"}</div>
         <div class="score">${L.COIN}<span id="myscore">${Math.max(0, sc[me.sid] || 0)}점</span></div></div>
-        <p class="small">푼 문제 ${lg.length}개 · 맞힌 문제 ${right}개${st >= 2 ? ` · <b class="combo">${st}연속 정답!</b>` : ""}</p>`;
+        <p class="small">푼 문제 ${lg.length}개 · 맞힌 문제 ${right}개${st >= 2 ? ` · <b class="combo">${st}연속 정답!</b>` : ""}${((R.shields || {})[me.sid] || 0) > 0 ? ` · <b class="shieldon">방어막 ${(R.shields || {})[me.sid]}개</b>` : ""}</p>`;
     }
     const wrap = (sc, inner) => `${banner()}<div id="toast" class="toast" hidden></div>${bar(sc)}${inner}`;
 
@@ -132,7 +140,7 @@
 
     function viewLobby(sc) {
       const ef = (R.settings && R.settings.effects) || {};
-      const list = L.EFFECT_KEYS.filter(k => ef[k] !== false).map(k => `<li>${L.icon(L.EFFECT_ICON[k])}<span><b>${L.EFFECTS[k].name}</b> ${L.EFFECTS[k].desc(k === "add" ? "10~30" : k === "minus" ? "10~20" : 0)}</span></li>`).join("");
+      const list = L.EFFECT_KEYS.filter(k => ef[k] !== false).map(k => `<li>${L.icon(L.EFFECT_ICON[k])}<span><b>${L.EFFECTS[k].name}</b> ${L.EFFECTS[k].desc(k === "add" ? "10~30" : k === "minus" ? "10~20" : 0)}${L.EFFECTS[k].leaderOnly ? " <small>(1등일 때만)</small>" : ""}</span></li>`).join("");
       app.innerHTML = wrap(sc, `<div class="card wait">${L.CHEST}<h2>선생님이 시작하면 문제가 나와요</h2>
         <p>${esc(Q.title)} · 제한 시간 ${Math.round(((R.settings && R.settings.timeLimit) || 300) / 60)}분</p>
         <p>문제를 스스로 넘기며 풀어요. 맞히면 카드 ${CARDS}장 중 하나를 골라요.</p>
@@ -157,7 +165,11 @@
       const q = qFor(qi, count), ok = L.isCorrect(q, draft);
       const ent = { qi, given: String(draft), correct: ok, pts: ok ? L.ptsOf(Q, q) : 0, at: B.now() };
       if (ok) { const st = streakNow() + 1, cb = L.comboBonus(st); if (cb) { ent.combo = cb; ent.streak = st; } }
-      if (ok) ent.cards = Array.from({ length: CARDS }, () => L.drawEffect(R.settings && R.settings.effects));
+      if (ok) {
+        const sc = L.selfScores(R), mine = sc[me.sid] || 0;
+        const leader = mine > 0 && Object.keys(R.students || {}).every(id => id === me.sid || (sc[id] || 0) <= mine);   // 지금 1등이면 1등 전용 카드도
+        ent.cards = Array.from({ length: CARDS }, () => L.drawEffect(R.settings && R.settings.effects, { leader }));
+      }
       if (!ok) showFb = { qi, count, given: draft };
       try { await B.set(base + "/log/" + me.sid + "/" + nkey(count), ent); } finally { busy = false; }
       render();
@@ -225,14 +237,26 @@
           const others = Object.keys(R.students || {}).filter(id => id !== me.sid).sort((a, b) => (sc[b] || 0) - (sc[a] || 0));
           target = others.length && (sc[others[0]] || 0) > 0 ? others[0] : null;
         }
-        const d = effectDelta(cur.eff, me.sid, target, sc);
-        const id = me.sid + "-" + cur.k;
-        if (Object.keys(d).length) await B.set(base + "/ledger/" + id, { by: me.sid, target: target || null, kind: cur.eff.k, d, at: B.now() });
+        const k = cur.eff.k, shields = R.shields || {}, id = me.sid + "-" + cur.k;
+        let d = {}, kind = k, msg;
+        if (k === "shield") {
+          await B.set(base + "/shields/" + me.sid, (shields[me.sid] || 0) + 1);
+          msg = "방어막이 생겼어요! 다음 공격 한 번을 막아요.";
+        } else if (target && L.ATTACKS.includes(k) && (shields[target] || 0) > 0) {
+          await B.set(base + "/shields/" + target, shields[target] - 1);          // 상대 방어막 하나 소모
+          kind = "blocked"; msg = `${nameOf(R, target)}의 방어막에 막혔어요!`;
+        } else {
+          d = effectDelta(cur.eff, me.sid, target, sc);
+          const v = d[me.sid] || 0;
+          msg = k === "swap" ? `${nameOf(R, target)}와(과) 점수를 바꿨어요 (${v >= 0 ? "+" : ""}${v}점)`
+            : k === "topMinus" ? (target ? `1등 ${nameOf(R, target)}의 점수 ${-(d[target] || 0)}점이 줄었어요!` : "아직 점수가 있는 친구가 없어요.")
+            : k === "taxAll" ? (v ? `모든 친구에게서 조금씩, 모두 ${v}점을 가져왔어요!` : "아직 점수가 있는 친구가 없어요.")
+            : v >= 0 ? `+${v}점!` : `${v}점…`;
+        }
+        if (Object.keys(d).length || kind === "shield" || kind === "blocked")
+          await B.set(base + "/ledger/" + id, { by: me.sid, target: target || null, kind, card: k, d, at: B.now() });
         await B.update(base + "/log/" + me.sid + "/" + cur.k, { done: true, target: target || null });
-        const v = d[me.sid] || 0;
-        toast(cur.eff.k === "swap" ? `${nameOf(R, target)}와(과) 점수를 바꿨어요 (${v >= 0 ? "+" : ""}${v}점)`
-          : cur.eff.k === "topMinus" ? (target ? `1등 ${nameOf(R, target)}의 점수 ${-(d[target] || 0)}점이 줄었어요!` : "아직 점수가 있는 친구가 없어요.")
-          : v >= 0 ? `+${v}점!` : `${v}점…`);
+        toast(msg);
       } finally { busy = false; lastKey = ""; render(); }
     }
 
@@ -257,10 +281,12 @@
       if (!seen) { seen = new Set(Object.keys(L2)); return; }
       Object.entries(L2).forEach(([id, x]) => {
         if (seen.has(id)) return; seen.add(id);
+        if (x && x.kind === "blocked" && x.target === me.sid) { toast(`방어막이 ${nameOf(R, x.by)}의 공격을 막았어요!`); return; }
         if (x && x.by !== me.sid && x.d && x.d[me.sid]) {
           const v = x.d[me.sid];
           toast(x.kind === "swap" ? `${nameOf(R, x.by)}이(가) 나와 점수를 바꿨어요 (${v >= 0 ? "+" : ""}${v}점)`
             : x.kind === "topMinus" ? `${nameOf(R, x.by)}이(가) 1등 감점 카드를 썼어요! 내 점수 ${v}점`
+            : x.kind === "taxAll" ? `1등 ${nameOf(R, x.by)}이(가) 모두에게서 조금씩 가져갔어요 (${v}점)`
             : `${nameOf(R, x.by)}이(가) 내 점수 ${-v}점을 가져갔어요!`);
         }
       });
@@ -361,7 +387,7 @@
       on("stopyes", () => { confirmEnd = false; B.update(base + "/state", { phase: "end", endsAt: B.serverNow() }); });
       on("reset", () => { confirmReset = true; render(); });
       on("resetno", () => { confirmReset = false; render(); });
-      on("resetyes", async () => { confirmReset = false; await B.update(base, { log: null, ledger: null, state: { phase: "lobby" } }); });
+      on("resetyes", async () => { confirmReset = false; await B.update(base, { log: null, ledger: null, shields: null, state: { phase: "lobby" } }); });
       on("end", () => { confirmEnd = true; render(); });
       on("endno", () => { confirmEnd = false; render(); });
       on("endyes", async () => { stop(); await B.remove(base); onClose(); });
