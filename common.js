@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const L = (window.LQ = {});
-  L.APP_VERSION = "20261020121500";
+  L.APP_VERSION = "20261021093035";
 
   /** 사이트가 새 버전이면 한 번 새로고침 (오래 열어 둔 태블릿이 예전 프로그램으로 남지 않게) */
   L.checkUpdate = async (canReload) => {
@@ -243,6 +243,9 @@
     taxAll:   { name: "조금씩 가져오기", weight: 12, desc: () => "모든 친구에게서 3점씩", leaderOnly: true }
   };
   L.TAX = 3;
+  // 점수 바꾸기·전부 가져오기: 문제를 5개 이상 풀고 3개 이상 맞힌 학생에게만, 마지막 1분에는 안 나옴
+  L.BIG_EFFECTS = ["swap", "stealAll"];
+  L.BIG_RULE = { minSolved: 5, minCorrect: 3, lastMs: 60000 };
   L.ATTACKS = ["stealSome", "stealAll", "swap", "topMinus"];
   L.TOP_MINUS = 30;
   /** 연속 정답 콤보 보너스: 2연속 +10, 3연속 +20, 4연속 +30, 5연속부터 +50 */
@@ -252,6 +255,7 @@
   /** 효과 카드 한 장 뽑기. enabled = {add:true, ...} */
   L.drawEffect = (enabled, ctx) => {
     let keys = L.EFFECT_KEYS.filter(k => (!enabled || enabled[k] !== false) && (!L.EFFECTS[k].leaderOnly || (ctx && ctx.leader)));
+    if (ctx && ctx.allowBig === false) keys = keys.filter(k => !L.BIG_EFFECTS.includes(k));   // 큰 카드는 조건이 될 때만
     if (!keys.length) keys = ["add"];
     const pickK = pickWeighted(keys.map(k => ({ k, weight: L.EFFECTS[k].weight }))).k;
     if (pickK === "add") { const a = pick([10, 10, 15, 15, 20, 30]); return { k: "add", amount: a, icon: a >= 30 ? "crown" : a >= 20 ? "gem" : a >= 15 ? "ruby" : "coin" }; }
