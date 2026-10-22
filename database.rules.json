@@ -38,6 +38,40 @@
           }
         }
       }
+    },
+    "maeul": {
+      "classes": {
+        ".read": "auth != null",
+        "$c": {
+          ".write": "auth != null && (newData.exists() || auth.token.email == 'goraniduck@gmail.com')",
+          ".validate": "$c.matches(/^[3-6]-([1-9]|1[0-9]|20)$/) && newData.isBoolean()"
+        }
+      },
+      "posts": {
+        ".read": "auth != null && auth.token.email == 'goraniduck@gmail.com'",
+        "$c": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.email == 'goraniduck@gmail.com'",
+          ".validate": "$c.matches(/^[3-6]-([1-9]|1[0-9]|20)$/)",
+          "$p": {
+            ".write": "auth != null && ((!data.exists() && newData.child('uid').val() == auth.uid) || (data.exists() && !newData.exists() && data.child('uid').val() == auth.uid))",
+            ".validate": "newData.hasChildren(['uid','team','sid','solution','at']) && newData.child('team').isString() && newData.child('team').val().length <= 40 && newData.child('solution').isString() && newData.child('solution').val().length <= 2000 && (!newData.child('drawing').exists() || (newData.child('drawing').isString() && newData.child('drawing').val().length <= 300000))"
+          }
+        }
+      },
+      "likes": {
+        ".read": "auth != null && auth.token.email == 'goraniduck@gmail.com'",
+        "$c": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.email == 'goraniduck@gmail.com'",
+          "$p": {
+            "$u": {
+              ".write": "auth != null && $u == auth.uid",
+              ".validate": "newData.isBoolean()"
+            }
+          }
+        }
+      }
     }
   }
 }
