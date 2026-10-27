@@ -129,6 +129,7 @@
       if (key === lastKey) return;
       lastKey = key;
       stopCountdown();
+      L.arm(app);
       if (st.phase === "lobby" || !st.phase) return viewLobby(sc);
       if (st.phase === "end" || !running()) return viewEnd(sc);
       if (showFb) return viewFeedback(sc);

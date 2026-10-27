@@ -102,6 +102,7 @@
     const key = state.phase + "|" + state.q + "|" + JSON.stringify(r || null) + "|" + Object.keys(myAns).length;
     if (key === lastKey) return;      // 다른 친구가 답을 낼 때 화면이 다시 그려지지 않게
     lastKey = key;
+    L.arm(app);
     if (state.phase === "lobby") {
       viewWait("선생님이 문제를 열 때까지 기다려요", `${esc(Q.title)}`, "", true);
     }

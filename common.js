@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const L = (window.LQ = {});
-  L.APP_VERSION = "20261027110516";
+  L.APP_VERSION = "20261027111809";
 
   /** 사이트가 새 버전이면 한 번 새로고침 (오래 열어 둔 태블릿이 예전 프로그램으로 남지 않게) */
   L.checkUpdate = async (canReload) => {
@@ -19,6 +19,13 @@
       location.replace(location.pathname + "?" + qs.toString() + location.hash);
       return true;
     } catch (e) { return false; }
+  };
+  /** 새 화면이 뜬 직후 잠깐 탭을 막음: '정답 확인'을 누른 손가락(두 번 탭)이 다음 화면의 카드를 누르지 않게 */
+  L.arm = (el, ms = 600) => {
+    if (!el) return;
+    el.classList.add("arming");
+    clearTimeout(el._armT);
+    el._armT = setTimeout(() => el.classList.remove("arming"), ms);
   };
   /** 방 코드가 담긴 학생용 QR (vendor/qrcode.js가 없으면 고정 QR 그림) */
   L.qrHTML = (url, cell = 5) => {
