@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const L = (window.LQ = {});
-  L.APP_VERSION = "20261027104937";
+  L.APP_VERSION = "20261027110516";
 
   /** 사이트가 새 버전이면 한 번 새로고침 (오래 열어 둔 태블릿이 예전 프로그램으로 남지 않게) */
   L.checkUpdate = async (canReload) => {
@@ -15,9 +15,17 @@
       if (tried === v) return false;                   // 같은 버전으로 이미 한 번 시도했으면 반복하지 않음
       if (canReload && !canReload()) return true;      // 지금은 새로고침하기 곤란한 순간
       try { sessionStorage.setItem("lq-reload", v); } catch (e) {}
-      location.replace(location.pathname + "?r=" + v + location.hash);
+      const qs = new URLSearchParams(location.search); qs.set("r", v);
+      location.replace(location.pathname + "?" + qs.toString() + location.hash);
       return true;
     } catch (e) { return false; }
+  };
+  /** 방 코드가 담긴 학생용 QR (vendor/qrcode.js가 없으면 고정 QR 그림) */
+  L.qrHTML = (url, cell = 5) => {
+    try {
+      const qr = window.qrcode(0, "M"); qr.addData(url); qr.make();
+      return qr.createSvgTag({ cellSize: cell, margin: 2, scalable: true });
+    } catch (e) { return `<img src="qr-student.svg" alt="학생 주소 QR 코드">`; }
   };
   /** 문제 틀 생성기가 아직 없으면 불러오기 */
   L.ensureGenerators = () => (L.instantiate ? Promise.resolve() : new Promise(res => {
@@ -302,7 +310,8 @@
         const r = db.ref(p);
         const h = s => { if (s.val()) { r.onDisconnect().set(false); r.set(true); } };
         conn.on("value", h);
-        return () => { conn.off("value", h); r.onDisconnect().cancel(); r.set(false); };
+        // quiet=true: 방이 이미 지워졌을 때는 아무것도 쓰지 않음 (지운 방이 다시 생기지 않게)
+        return quiet => { conn.off("value", h); r.onDisconnect().cancel(); if (!quiet) r.set(false); };
       },
       onConnected(cb) { const h = s => cb(!!s.val()); conn.on("value", h); return () => conn.off("value", h); },
       now: () => firebase.database.ServerValue.TIMESTAMP,
@@ -344,7 +353,7 @@
         api.set(p, true);
         const off = () => api.set(p, false);
         window.addEventListener("pagehide", off);
-        return () => { window.removeEventListener("pagehide", off); off(); };
+        return quiet => { window.removeEventListener("pagehide", off); if (!quiet) off(); };
       },
       onConnected(cb) { setTimeout(() => cb(true), 0); return () => {}; },
       now: () => Date.now(),

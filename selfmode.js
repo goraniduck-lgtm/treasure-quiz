@@ -149,7 +149,9 @@
       app.innerHTML = wrap(sc, `<div class="card wait">${L.CHEST}<h2>선생님이 시작하면 문제가 나와요</h2>
         <p>${esc(Q.title)} · 제한 시간 ${Math.round(((R.settings && R.settings.timeLimit) || 300) / 60)}분</p>
         <p>문제를 스스로 넘기며 풀어요. 맞히면 카드 ${CARDS}장 중 하나를 골라요.</p>
-        <ul class="efflist">${list}</ul><p class="small">연속 정답 콤보: ${L.COMBO_TEXT}</p></div>`);
+        <ul class="efflist">${list}</ul><p class="small">연속 정답 콤보: ${L.COMBO_TEXT}</p>
+        <button class="go ghost" id="leaveRoom">다른 방으로 가기</button></div>`);
+      document.getElementById("leaveRoom").addEventListener("click", () => { B.remove(base + "/students/" + me.sid); leave("", true); });
     }
 
     function viewQuestion(sc, count) {
@@ -309,7 +311,7 @@
     }
 
     const unsub = B.on(base, v => {
-      if (!v || !v.state) { leave("선생님이 수업을 끝냈어요."); return; }
+      if (!v || !v.state) { leave("선생님이 수업을 끝냈어요.", true); return; }
       R = v; notify(); render();
     });
     const tick = setInterval(() => {
@@ -359,8 +361,8 @@
         left = `<div class="card wait">${L.CHEST}<h2>${esc(Q.title)}</h2><p>${esc(Q.subtitle || "")}</p>
           <div class="meta"><span class="chip">학생 스스로 진행</span><span class="chip">제한 시간 ${mins}분</span><span class="chip">문제 ${Q.questions.length}개를 섞어서</span></div>
           <div class="meta">${effOn.map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div>
-          <img src="qr-student.svg" alt="학생 주소 QR 코드" style="width:min(220px,55%);height:auto">
-          <p>QR을 찍거나 학생 주소로 들어와 방 코드 <b>${esc(code)}</b>를 입력하면 오른쪽에 이름이 나타나요.</p></div>`;
+          <div class="qrbox">${L.qrHTML(studentUrl() + "?room=" + code)}</div>
+          <p>이 QR을 찍으면 방 코드 <b>${esc(code)}</b>가 채워진 화면이 열려요. 이름을 확인하고 들어오면 오른쪽에 나타나요.</p></div>`;
         ctrl = `<button class="go" id="go" ${students.length ? "" : "disabled"}>시작하기 (${mins}분)</button>`;
       } else {
         const perQ = st.phase === "end" ? perQuestion() : "";

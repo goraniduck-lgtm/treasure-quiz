@@ -254,3 +254,5 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outl
 .combo { color: var(--no); font-weight: normal; font-family: var(--display); }
 .combo-big { font-family: var(--display); font-size: 1.5rem; color: #fff; background: var(--no); border-radius: 999px; padding: 4px 16px; }
 .shieldon { color: #1F7FB0; font-weight: normal; font-family: var(--display); }
+.qrbox { width: min(240px, 60%); background: #fff; border-radius: 12px; padding: 6px; }
+.qrbox svg, .qrbox img { width: 100%; height: auto; display: block; }

@@ -69,6 +69,8 @@
           for (let k = total - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [order[k], order[j]] = [order[j], order[k]]; }
           order = order.slice(0, Number(cnt)).sort((a, b) => a - b);
         }
+        const prev = L.store.get(T_KEY);              // 이 컴퓨터에서 열었던 지난 방은 닫기 (학생들이 예전 방으로 들어가지 않게)
+        if (prev && prev.code) { try { await B.remove("rooms/" + prev.code); } catch (err) {} }
         let c;
         for (let k = 0; k < 20; k++) { c = String(1000 + Math.floor(Math.random() * 9000)); if (!(await B.get("rooms/" + c + "/quiz"))) break; }
         const title = files.length > 1 ? `${Qs.title.replace(/ 보물 찾기$/, "")} 외 ${files.length - 1}개` : Qs.title;
@@ -140,8 +142,8 @@
     if (st.phase === "lobby") {
       left = `<div class="card wait">${L.CHEST}<h2>${esc(Q.title)}</h2><p>${esc(Q.subtitle || "")}</p>
         <div class="meta"><span class="chip">문제 ${n}개</span><span class="chip">정답 만점 ${L.maxBase(Q)}점</span><span class="chip">보물 ${L.treasureRange(Q)}</span></div>
-        <img src="qr-student.svg" alt="학생 주소 QR 코드" style="width:min(240px,60%);height:auto">
-        <p>QR을 찍거나 학생 주소로 들어와 방 코드 <b>${esc(code)}</b>를 입력하면 오른쪽에 이름이 나타나요.</p></div>`;
+        <div class="qrbox">${L.qrHTML(studentUrl() + "?room=" + code)}</div>
+        <p>이 QR을 찍으면 방 코드 <b>${esc(code)}</b>가 채워진 화면이 열려요. 이름을 확인하고 들어오면 오른쪽에 나타나요.</p></div>`;
       ctrl = `<button class="go" id="start" ${students.length ? "" : "disabled"}>문제 1 열기</button>`;
     } else if (st.phase === "q") {
       const q = Q.questions[st.q];

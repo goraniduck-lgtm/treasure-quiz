@@ -77,7 +77,7 @@
       return;
     }
     subs.push(B.on(base + "/state", s => {
-      if (s === null) { leave("선생님이 수업을 끝냈어요."); return; }
+      if (s === null) { leave("선생님이 수업을 끝냈어요.", true); return; }
       state = s; render();
     }));
     subs.push(B.on(base + "/boards", b => { boards = b || {}; }));
@@ -88,9 +88,9 @@
     }));
   }
 
-  function leave(msg) {
+  function leave(msg, quiet) {
     subs.forEach(u => u()); subs = [];
-    if (stopPresence) { stopPresence(); stopPresence = null; }
+    if (stopPresence) { stopPresence(quiet); stopPresence = null; }
     joinErr = msg || ""; state = null; myAns = {}; Q = null;
     if (me) { me = { name: me.name }; L.store.set(ME_KEY, me); }
     viewJoin();
@@ -102,7 +102,9 @@
     const key = state.phase + "|" + state.q + "|" + JSON.stringify(r || null) + "|" + Object.keys(myAns).length;
     if (key === lastKey) return;      // 다른 친구가 답을 낼 때 화면이 다시 그려지지 않게
     lastKey = key;
-    if (state.phase === "lobby") viewWait("선생님이 문제를 열 때까지 기다려요", `${esc(Q.title)}`);
+    if (state.phase === "lobby") {
+      viewWait("선생님이 문제를 열 때까지 기다려요", `${esc(Q.title)}`, "", true);
+    }
     else if (state.phase === "end") viewEnd();
     else if (!r) viewQuestion();
     else if (r.correct && r.card == null) viewPick(r);
@@ -110,9 +112,12 @@
     window.scrollTo({ top: 0 });
   }
 
-  function viewWait(title, sub, extra = "") {
+  function viewWait(title, sub, extra = "", canLeave = false) {
     app.innerHTML = `${banner()}${bar()}
-      <div class="card wait">${L.CHEST}<h2>${title}</h2>${extra}<p>${sub}</p></div>`;
+      <div class="card wait">${L.CHEST}<h2>${title}</h2>${extra}<p>${sub}</p>
+      ${canLeave ? `<button class="go ghost" id="leaveRoom">다른 방으로 가기</button>` : ""}</div>`;
+    const lb = document.getElementById("leaveRoom");
+    if (lb) lb.addEventListener("click", () => { B.remove("rooms/" + me.code + "/students/" + me.sid); leave("", true); });
   }
 
   function viewAfter(r) {
@@ -227,5 +232,11 @@
   const idleNow = () => { const c = document.getElementById("check"); return !(c && !c.disabled) && !document.querySelector(".tcard:not([disabled]), .tgt:not([disabled])"); };
   L.checkUpdate();
   setInterval(() => L.checkUpdate(idleNow), 120000);
-  if (me && me.code && me.sid && me.name) enter(); else viewJoin();
+  // QR에 담긴 방 코드(?room=1234)가 있으면 그 방이 먼저: 저장된 예전 방으로 자동 입장하지 않음
+  const wantRoom = (new URLSearchParams(location.search).get("room") || "").replace(/\D/g, "").slice(0, 4);
+  if (wantRoom.length === 4 && !(me && me.code === wantRoom && me.sid && me.name)) {
+    me = { name: (me && me.name) || "", code: wantRoom }; L.store.set(ME_KEY, me);
+    viewJoin();
+    const nm = document.getElementById("nm"); if (nm && !nm.value) nm.focus();
+  } else if (me && me.code && me.sid && me.name) enter(); else viewJoin();
 })();
