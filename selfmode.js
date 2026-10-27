@@ -145,11 +145,11 @@
 
     function viewLobby(sc) {
       const ef = (R.settings && R.settings.effects) || {};
-      const list = L.EFFECT_KEYS.filter(k => ef[k] !== false).map(k => `<li>${L.icon(L.EFFECT_ICON[k])}<span><b>${L.EFFECTS[k].name}</b> ${L.EFFECTS[k].desc(k === "add" ? "10~30" : k === "minus" ? "10~20" : 0)}${L.EFFECTS[k].leaderOnly ? " <small>(1등일 때만)</small>" : ""}${L.BIG_EFFECTS.includes(k) ? " <small>(5문제 이상 풀고 3개 이상 맞힌 뒤, 마지막 1분 제외)</small>" : ""}</span></li>`).join("");
+      const list = L.EFFECT_KEYS.filter(k => ef[k] !== false).map(k => `<li>${L.icon(L.EFFECT_ICON[k])}<span><b>${L.EFFECTS[k].name}</b> ${L.EFFECTS[k].desc(k === "add" ? "10~30" : k === "minus" ? "10~20" : 0)}${L.EFFECTS[k].leaderOnly ? " <small>(1등일 때만)</small>" : ""}${L.BIG_EFFECTS.includes(k) ? " <small>(5문제 이상 풀고 3개 이상 맞힌 뒤, 마지막 1분 제외" + (k === "swap" ? ", 등수가 위쪽 절반일 때만" : "") + ")</small>" : ""}</span></li>`).join("");
       app.innerHTML = wrap(sc, `<div class="card wait">${L.CHEST}<h2>선생님이 시작하면 문제가 나와요</h2>
         <p>${esc(Q.title)} · 제한 시간 ${Math.round(((R.settings && R.settings.timeLimit) || 300) / 60)}분</p>
         <p>문제를 스스로 넘기며 풀어요. 맞히면 카드 ${CARDS}장 중 하나를 골라요.</p>
-        <ul class="efflist">${list}</ul></div>`);
+        <ul class="efflist">${list}</ul><p class="small">연속 정답 콤보: ${L.COMBO_TEXT}</p></div>`);
     }
 
     function viewQuestion(sc, count) {
@@ -182,7 +182,9 @@
         const leader = mine > 0 && Object.keys(R.students || {}).every(id => id === me.sid || (sc[id] || 0) <= mine);   // 지금 1등이면 1등 전용 카드도
         const past = Object.values(myLog()), BR = L.BIG_RULE;
         const allowBig = past.length + 1 >= BR.minSolved && past.filter(e => e.correct).length + 1 >= BR.minCorrect && remain() > BR.lastMs;
-        ent.cards = Array.from({ length: CARDS }, () => L.drawEffect(R.settings && R.settings.effects, { leader, allowBig }));
+        const ids = Object.keys(R.students || {}), rank = 1 + ids.filter(id => id !== me.sid && (sc[id] || 0) > mine).length;
+        const allowSwap = rank <= ids.length / 2;          // 25명이면 12등까지만 점수 바꾸기
+        ent.cards = Array.from({ length: CARDS }, () => L.drawEffect(R.settings && R.settings.effects, { leader, allowBig, allowSwap }));
       }
       if (!ok) showFb = { qi, count, given: draft };
       await B.set(base + "/log/" + me.sid + "/" + nkey(count), ent);

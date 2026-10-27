@@ -41,7 +41,7 @@
           <div id="selfopts" hidden class="opts">
             <fieldset><legend>제한 시간</legend>${seg("time", [["180", "3분"], ["300", "5분"], ["420", "7분"], ["600", "10분"], ["900", "15분"]], "300")}</fieldset>
             <fieldset><legend>맞히면 나오는 카드</legend><div class="seg">${L.EFFECT_KEYS.map(k => `<label><input type="checkbox" name="eff" value="${k}" checked>${L.EFFECTS[k].name}${L.EFFECTS[k].leaderOnly ? " (1등 전용)" : ""}</label>`).join("")}</div>
-              <p class="small" style="text-align:left">점수 추가 10~30점 · 감점 10~20점 · 일부 가져오기 30% · 전부 가져오기 · 점수 바꾸기 · 1등 감점 30점 (가져오기·바꾸기는 드물게 나와요)<br>점수 바꾸기·전부 가져오기는 5문제 이상 풀고 3개 이상 맞힌 학생에게만, 마지막 1분에는 나오지 않아요<br>1등일 때만: 방어막 3개(공격 3번 막기) · 조금씩 가져오기(모든 친구에게서 3점씩)<br>연속 정답 콤보: 2연속 +10 · 3연속 +20 · 4연속 +30 · 5연속부터 +50</p></fieldset>
+              <p class="small" style="text-align:left">점수 추가 10~30점 · 감점 10~20점 · 일부 가져오기 30% · 전부 가져오기 · 점수 바꾸기 · 1등 감점 30점 (가져오기·바꾸기는 드물게 나와요)<br>점수 바꾸기·전부 가져오기는 5문제 이상 풀고 3개 이상 맞힌 학생에게만, 마지막 1분에는 나오지 않아요. 점수 바꾸기는 등수가 위쪽 절반일 때만<br>1등일 때만: 방어막 3개(공격 3번 막기) · 조금씩 가져오기(모든 친구에게서 3점씩)<br>연속 정답 콤보: ${L.COMBO_TEXT}</p></fieldset>
           </div>
         </div>
         <button class="go" id="mk" ${list.length ? "" : "disabled"}>방 열기</button>

@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const L = (window.LQ = {});
-  L.APP_VERSION = "20261021093035";
+  L.APP_VERSION = "20261027104937";
 
   /** 사이트가 새 버전이면 한 번 새로고침 (오래 열어 둔 태블릿이 예전 프로그램으로 남지 않게) */
   L.checkUpdate = async (canReload) => {
@@ -248,14 +248,16 @@
   L.BIG_RULE = { minSolved: 5, minCorrect: 3, lastMs: 60000 };
   L.ATTACKS = ["stealSome", "stealAll", "swap", "topMinus"];
   L.TOP_MINUS = 30;
-  /** 연속 정답 콤보 보너스: 2연속 +10, 3연속 +20, 4연속 +30, 5연속부터 +50 */
-  L.comboBonus = n => (n >= 5 ? 50 : n === 4 ? 30 : n === 3 ? 20 : n === 2 ? 10 : 0);
+  /** 연속 정답 콤보 보너스 (맞힐 때마다): 1~5연속 2연속부터 +20·+30·+40·+50, 6~10연속 +80, 11~15연속 +150, 16연속 이상 +300 */
+  L.comboBonus = n => (n >= 16 ? 300 : n >= 11 ? 150 : n >= 6 ? 80 : n >= 2 ? n * 10 : 0);
+  L.COMBO_TEXT = "2~5연속 +20~50 · 6~10연속 +80 · 11~15연속 +150 · 16연속 이상 +300";
   L.EFFECT_KEYS = Object.keys(L.EFFECTS);
   L.EFFECT_ICON = { add: "coin", minus: "bomb", stealSome: "magnet", stealAll: "bag", swap: "swap", topMinus: "crownx", shield: "shield", taxAll: "tax", blocked: "shield" };
   /** 효과 카드 한 장 뽑기. enabled = {add:true, ...} */
   L.drawEffect = (enabled, ctx) => {
     let keys = L.EFFECT_KEYS.filter(k => (!enabled || enabled[k] !== false) && (!L.EFFECTS[k].leaderOnly || (ctx && ctx.leader)));
     if (ctx && ctx.allowBig === false) keys = keys.filter(k => !L.BIG_EFFECTS.includes(k));   // 큰 카드는 조건이 될 때만
+    if (ctx && ctx.allowSwap === false) keys = keys.filter(k => k !== "swap");                // 등수가 절반 아래면 점수 바꾸기 없음
     if (!keys.length) keys = ["add"];
     const pickK = pickWeighted(keys.map(k => ({ k, weight: L.EFFECTS[k].weight }))).k;
     if (pickK === "add") { const a = pick([10, 10, 15, 15, 20, 30]); return { k: "add", amount: a, icon: a >= 30 ? "crown" : a >= 20 ? "gem" : a >= 15 ? "ruby" : "coin" }; }
