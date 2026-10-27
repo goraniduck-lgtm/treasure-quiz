@@ -82,6 +82,28 @@ window.MB = (function () {
   be.clsLabel = (k) => { const m = /^(\d)-(\d+)$/.exec(k || ""); return m ? `${m[1]}학년 ${m[2]}반` : String(k || ""); };
   be.validCls = (k) => /^[3-6]-([1-9]|1[0-9]|20)$/.test(k);
   be.sortCls = (a) => a.sort((x, y) => x.localeCompare(y, "ko", { numeric: true }));
+  /* 해결 방안 비교 (교과서 '문제 해결 방안 결정' 표): 장점 + 시간과 비용 + 모두에게 도움 − 단점 */
+  const E = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  be.CRIT = [
+    ["pro", "장점", "+"],
+    ["con", "단점", "−"],
+    ["cost", "적절한 시간과 비용이 필요한가요?", "+"],
+    ["all", "모두에게 도움이 되나요?", "+"],
+  ];
+  be.ideaTotal = (d) => { const s = (d && d.s) || {}; return (+s.pro || 0) + (+s.cost || 0) + (+s.all || 0) - (+s.con || 0); };
+  be.starsText = (n) => "★".repeat(Math.max(0, +n || 0)) + "☆".repeat(5 - Math.max(0, Math.min(5, +n || 0)));
+  /* 읽기 전용 비교표 (발표 화면·카드·선생님 화면) */
+  be.compareHTML = (ideas, chosen) => {
+    const list = Array.isArray(ideas) ? ideas : Object.values(ideas || {});
+    if (!list.length) return "";
+    const head = `<tr><th>해결 방안</th>${be.CRIT.map(([, l]) => `<th>${E(l)}</th>`).join("")}<th>총 별점</th></tr>`;
+    const rows = list.map((d, i) => {
+      const s = d.s || {};
+      const cell = (k, sign, txt) => `<td>${txt ? `<span class="cmp-t">${E(txt)}</span>` : ""}<span class="cmp-s ${k === "con" ? "neg" : ""}">${sign}${be.starsText(s[k])}</span></td>`;
+      return `<tr class="${i === +chosen ? "pick" : ""}"><th scope="row">${i === +chosen ? '<span class="cmp-badge">결정</span>' : ""}${E(d.text)}${d.name ? `<small>${E(d.name)}</small>` : ""}</th>${cell("pro", "+", d.pro)}${cell("con", "−", d.con)}${cell("cost", "+")}${cell("all", "+")}<td class="cmp-tot">별 ${be.ideaTotal(d)}개</td></tr>`;
+    }).join("");
+    return `<div class="cmp-wrap"><table class="cmp">${head}${rows}</table></div>`;
+  };
   be.TEACHER_EMAIL = TEACHER_EMAIL;
   be.DEMO = DEMO;
   return be;

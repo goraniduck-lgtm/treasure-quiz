@@ -77,6 +77,19 @@ button,input{font:inherit;color:inherit}
 .slide .em{font-size:clamp(80px,12vw,140px);line-height:1}
 .pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.pills span{background:var(--sun-soft);border-radius:999px;padding:4px 14px;font-size:clamp(16px,2vw,22px)}
 .snav{display:flex;justify-content:space-between;gap:10px}
+.cmp-wrap{overflow-x:auto;border:2px solid var(--line);border-radius:14px;background:var(--paper);max-width:100%}
+.cmp{border-collapse:collapse;width:100%;min-width:680px;font-size:14px;text-align:left}
+.cmp th,.cmp td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:8px;vertical-align:top}
+.cmp tr>*:last-child{border-right:0}
+.cmp tr:first-child th{background:#9B7A4E;color:#FFF8EC;font-family:var(--display);font-weight:400;text-align:center;vertical-align:middle}
+.cmp th[scope=row]{font-family:var(--display);font-weight:400;background:var(--sun-soft);width:24%}
+.cmp th[scope=row] small{display:block;font-family:var(--body);font-size:12px;color:var(--ink-2)}
+.cmp tr.pick th[scope=row],.cmp tr.pick td{background:var(--leaf-soft)}
+.cmp-t{display:block;margin-bottom:4px}.cmp-s{white-space:nowrap;color:var(--sun)}.cmp-s.neg{color:var(--brick)}
+.cmp-tot{font-family:var(--display);font-size:17px;text-align:center;white-space:nowrap;vertical-align:middle}
+.cmp-badge{display:inline-block;background:var(--leaf);color:var(--on-leaf);font-family:var(--display);font-size:12px;border-radius:6px;padding:0 6px;margin-right:6px}
+.slide .cmp{font-size:clamp(14px,1.6vw,20px)}
+.sheet h3{font-size:19px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:9px 18px;border-radius:999px;font-family:var(--display);z-index:60}
 .demo{background:var(--sun-soft);border:2px solid var(--sun);border-radius:12px;padding:6px 12px;font-size:14px}
 </style>
@@ -163,11 +176,12 @@ function openDetail(p){
       <dt>찾은 원인</dt><dd>${dd(arr(p.causes).join('\n'))}</dd>
       <dt>모둠 생각 원인</dt><dd>${dd(p.causeText)}</dd>
       <dt>해결 방법 종류</dt><dd>${dd(arr(p.types).join(', '))}</dd>
-      <dt>해결 방법</dt><dd>${dd(p.solution)}</dd>
+      <dt>결정한 방안</dt><dd>${dd(p.solution)}</dd>
       <dt>도움 요청</dt><dd>${dd(p.helper)}</dd>
       <dt>먼저 할 일</dt><dd>${dd(p.action)}</dd>
       <dt>기대 효과</dt><dd>${dd(p.effect)}</dd>
     </dl>
+    ${arr(p.ideas).length?`<h3>모둠원 의견과 방안 비교</h3>${MB.compareHTML(arr(p.ideas),p.chosen)}`:''}
     ${p.drawing?`<img src="${p.drawing}" alt="해결 설계도">`:'<p class="guide">설계도를 그리지 않았어요.</p>'}</div>`;
   $('#modal').hidden=false;$('#mClose').focus();
 }
@@ -197,9 +211,9 @@ document.addEventListener('keydown',e=>{
 
 function downloadCsv(){
   const list=(view==='전체'?allRows():allRows().filter(r=>r.cls===view)).slice().reverse();
-  const head=['반','모둠','문제','올린 시각','불편한 주민','문제 정리','알리는 방법','찾은 원인','모둠 생각 원인','해결 방법 종류','해결 방법','도움 요청','먼저 할 일','기대 효과','칭찬 수'];
+  const head=['반','모둠','문제','올린 시각','불편한 주민','문제 정리','알리는 방법','찾은 원인','모둠 생각 원인','모둠원 의견(총 별점)','해결 방법 종류','결정한 방안','도움 요청','먼저 할 일','기대 효과','칭찬 수'];
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const lines=[head.map(q).join(',')].concat(list.map(p=>[L(p.cls),p.team,p.title,p.at?new Date(p.at).toLocaleString('ko-KR'):'',arr(p.who).join(', '),p.problem,arr(p.tell).join(', '),arr(p.causes).join(' / '),p.causeText,arr(p.types).join(', '),p.solution,p.helper,p.action,p.effect,likeN(p.cls,p.id)].map(q).join(',')));
+  const lines=[head.map(q).join(',')].concat(list.map(p=>[L(p.cls),p.team,p.title,p.at?new Date(p.at).toLocaleString('ko-KR'):'',arr(p.who).join(', '),p.problem,arr(p.tell).join(', '),arr(p.causes).join(' / '),p.causeText,arr(p.ideas).map((d,i)=>`${i===+p.chosen?'[결정] ':''}${d.name?d.name+': ':''}${d.text} (장점+${(d.s||{}).pro||0} 단점-${(d.s||{}).con||0} 시간비용+${(d.s||{}).cost||0} 도움+${(d.s||{}).all||0} = ${MB.ideaTotal(d)})`).join(' / '),arr(p.types).join(', '),p.solution,p.helper,p.action,p.effect,likeN(p.cls,p.id)].map(q).join(',')));
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`문제해결단_${view==='전체'?'모든반':L(view).replace(/\s/g,'')}_${new Date().toISOString().slice(0,10)}.csv`;
@@ -209,12 +223,13 @@ function downloadCsv(){
 /* 발표 화면 */
 let slides=[],si=0,cur=null;
 function openShow(m){
-  cur=m;const who=arr(m.who),causes=arr(m.causes),types=arr(m.types);
+  cur=m;const who=arr(m.who),causes=arr(m.causes),types=arr(m.types),ideas=arr(m.ideas);
   const pic=m.sid?`<img src="${scene(m.sid)}" alt="" onerror="this.remove()">`:'';
   slides=[
     `<span class="tag">우리가 찾은 문제</span>${pic||`<div class="em">${esc(m.emoji||'')}</div>`}<h2>${esc(m.title||'')}</h2><p class="big">${esc(m.problem||'')}</p>${who.length?`<div class="pills">${who.map(w=>`<span>${esc(w)}</span>`).join('')}</div>`:''}`,
     `<span class="tag">원인은 이것이에요</span>${causes.length?`<div class="pills">${causes.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`:''}<p class="big">${esc(m.causeText||(causes.length?'':'원인을 아직 정리하지 않았어요.'))}</p>`,
-    `<span class="tag">우리의 해결 방법</span>${m.drawing?`<img src="${m.drawing}" alt="해결 설계도">`:''}<p class="big">${esc(m.solution||'')}</p>${types.length?`<div class="pills">${types.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`:''}`,
+    ...(ideas.length?[`<span class="tag">여러 해결 방안을 비교했어요</span>${MB.compareHTML(ideas,m.chosen)}`]:[]),
+    `<span class="tag">우리가 결정한 해결 방안</span>${m.drawing?`<img src="${m.drawing}" alt="해결 설계도">`:''}<p class="big">${esc(m.solution||'')}</p>${types.length?`<div class="pills">${types.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`:''}`,
     `<span class="tag">이렇게 실천할게요</span>${m.helper?`<p class="big"><b>도움 요청</b> · ${esc(m.helper)}</p>`:''}${m.action?`<p class="big"><b>먼저 할 일</b> · ${esc(m.action)}</p>`:''}<h2>${esc(m.effect||'모두가 함께 행복한 마을!')}</h2>`];
   si=0;$('#show').hidden=false;drawShow();
   try{document.documentElement.requestFullscreen?.().catch(()=>{});}catch(_){}

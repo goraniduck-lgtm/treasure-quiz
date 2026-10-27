@@ -91,14 +91,51 @@ select.pick{appearance:none;background:var(--paper);border:2px solid var(--line)
 .tab b{font-weight:400;opacity:.7;margin-left:4px}
 .offline{position:fixed;left:0;right:0;top:0;z-index:60;background:var(--brick);color:#fff;text-align:center;padding:calc(8px + env(safe-area-inset-top,0px)) 16px 8px;font-family:var(--display)}
 .mini.like[aria-pressed="true"]{background:var(--sun);color:#2A2004}
+.ideas{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.idea{border:2px solid var(--line);border-radius:16px;background:var(--paper-2);padding:12px;display:flex;flex-direction:column;gap:8px}
+.idea-h{display:flex;gap:8px;align-items:center}
+.idea-n{font-family:var(--display);color:var(--leaf);white-space:nowrap}
+.idea-h input[type=text]{padding:6px 10px;font-size:16px;flex:1;min-width:0}
+.idea textarea{min-height:90px;background:var(--paper)}
+.idea.add{border-style:dashed;align-items:center;justify-content:center;min-height:120px;font-family:var(--display);font-size:20px;color:var(--leaf);cursor:pointer}
+.idea.add:hover{border-color:var(--leaf)}
+.mini-x{border:2px solid var(--line);background:var(--paper);border-radius:10px;padding:3px 10px;font-size:14px;white-space:nowrap}
+.ex{background:var(--sun-soft);border-radius:12px;padding:10px 14px;font-size:15px;line-height:1.7}
+.ex b{font-family:var(--display);font-weight:400}
+.pos{color:var(--leaf)}.neg{color:var(--brick)}
+.cmp-wrap{overflow-x:auto;border:2px solid var(--line);border-radius:16px;background:var(--paper)}
+.cmp{border-collapse:collapse;width:100%;min-width:760px;font-size:15px}
+.cmp th,.cmp td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:10px;vertical-align:top;text-align:left}
+.cmp tr>*:last-child{border-right:0}
+.cmp tr:first-child th{background:#9B7A4E;color:#FFF8EC;font-family:var(--display);font-weight:400;font-size:15px;text-align:center;vertical-align:middle;line-height:1.3}
+.cmp th[scope=row]{font-family:var(--display);font-weight:400;font-size:17px;background:var(--sun-soft);width:22%}
+.cmp th[scope=row] small{display:block;font-family:var(--body);font-size:13px;color:var(--ink-2)}
+.cmp tr.pick th[scope=row],.cmp tr.pick td{background:var(--leaf-soft)}
+.cmp textarea{min-height:58px;font-size:15px;padding:6px 8px;border-radius:10px;margin-bottom:6px}
+.cmp-t{display:block;margin-bottom:4px}
+.cmp-s{white-space:nowrap;color:var(--sun);letter-spacing:1px}.cmp-s.neg{color:var(--brick)}
+.cmp-tot{font-family:var(--display);font-size:19px;text-align:center!important;white-space:nowrap;vertical-align:middle!important}
+.cmp-tot small{display:block;font-family:var(--body);font-size:12px;color:var(--leaf)}
+.cmp-badge{display:inline-block;background:var(--leaf);color:var(--on-leaf);font-family:var(--display);font-size:12px;border-radius:6px;padding:0 6px;margin-right:6px;vertical-align:2px}
+.stars{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
+.stars b{font-family:var(--display);font-weight:400;color:var(--leaf);margin-right:2px;font-size:18px}
+.stars.neg b{color:var(--brick)}
+.stars button{border:0;background:none;padding:2px;font-size:22px;line-height:1;color:var(--line);cursor:pointer}
+.stars button[aria-pressed="true"]{color:var(--sun)}
+.stars.neg button[aria-pressed="true"]{color:var(--brick)}
+.pickbtn{border:2px solid var(--leaf);background:var(--paper);color:var(--leaf);border-radius:12px;padding:6px 10px;font-family:var(--display);font-size:15px;cursor:pointer;white-space:nowrap}
+.pickbtn[aria-pressed="true"]{background:var(--leaf);color:var(--on-leaf)}
+.slide .cmp-wrap{max-width:100%;text-align:left}.slide .cmp{font-size:clamp(14px,1.6vw,20px)}
+.card .cmp-wrap{font-size:14px}
+@media (max-width:520px){.stone .dot{width:40px;height:40px;font-size:18px}.stone .lab{font-size:12px}.path::before{top:24px}}
 .wall-foot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .post .cls{font-size:12px;font-family:var(--display);color:var(--sky);background:var(--sky-soft);border-radius:6px;padding:0 8px;align-self:flex-start}
 .confirm{background:var(--sun-soft);border:2px solid var(--sun);border-radius:16px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .confirm .row{display:flex;gap:8px;flex-wrap:wrap}
 
 /* stepper: stepping stones on a path */
-.path{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:6px 0}
-.path::before{content:"";position:absolute;left:10%;right:10%;top:30px;border-top:4px dashed var(--line);z-index:0}
+.path{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:6px 0}
+.path::before{content:"";position:absolute;left:8%;right:8%;top:30px;border-top:4px dashed var(--line);z-index:0}
 .stone{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--ink-2)}
 .stone .dot{width:50px;height:50px;border-radius:50% 50% 46% 54%/55% 50% 50% 45%;background:var(--paper);border:3px solid var(--line);display:grid;place-items:center;font-family:var(--display);font-size:22px;color:var(--ink-2);transition:all .2s}
 .stone .lab{font-family:var(--display);font-size:15px;text-align:center;line-height:1.2}
@@ -516,7 +553,7 @@ const IMG={};
  ['cat','scene interview observe'],['chick','scene interview observe'],['monkey','scene interview observe'],
  ['sheep','scene interview observe'],['mouse','scene interview observe'],['bear','scene']].forEach(([id,slots])=>{IMG[id]={};slots.split(' ').forEach(s=>IMG[id][s]=`img/${id}-${s}.jpg`);});
 const img=(id,slot)=>IMG[id]&&IMG[id][slot];
-const STEPS=['문제 상황','문제 확인','원인 조사','방안 탐색','실천'];
+const STEPS=['문제 상황','문제 확인','원인 조사','방안 탐색','방안 결정','실천'];
 const TELL=['마을 게시판에 알림 글 붙이기','마을 회의에서 말하기','마을 신문·방송에 알리기','주민 설문 조사하기','이장님(주민센터)께 편지 쓰기'];
 const TYPES=['시설을 새로 만들거나 고쳐요','새로운 규칙·약속을 정해요','캠페인으로 널리 알려요','관계 기관에 건의해요','주민이 함께 활동해요'];
 const METHODS=[
@@ -532,7 +569,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let S;
-function fresh(id){return {sid:id,step:0,touched:false,who:[],whoEtc:'',sentence:'',tell:[],opened:{},causes:[],causeText:'',hints:0,types:[],solution:'',helper:'',drawing:null,team:'',action:'',effect:''};}
+function fresh(id){return {sid:id,step:0,touched:false,who:[],whoEtc:'',sentence:'',tell:[],opened:{},causes:[],causeText:'',hints:0,ideas:[{name:'',text:''},{name:'',text:''}],chosen:-1,types:[],solution:'',helper:'',drawing:null,team:'',action:'',effect:''};}
 const sc=()=>SCEN.find(x=>x.id===S.sid);
 function randomId(except){const pool=SCEN.filter(x=>x.id!==except);return pool[Math.floor(Math.random()*pool.length)].id;}
 
@@ -590,30 +627,50 @@ const views=[
 </div>`;},
 
 ()=>{const s=sc();return `
-<div class="stephead"><span class="eyebrow">4단계 · 방안 탐색</span><h2>해결 방법을 상상하고 설계도를 그려요</h2><p>막히면 힌트를 하나씩 열어 보세요.</p></div>
+<div class="stephead"><span class="eyebrow">4단계 · 방안 탐색</span><h2>모둠원이 각자 해결 방안을 내요</h2><p>문제를 어떻게 해결하면 좋을지 한 사람씩 자유롭게 써 보세요. 막히면 힌트를 열어요.</p></div>
+<div class="q">
+  <div class="hints">${s.hints.slice(0,S.hints).map((h,i)=>`<div class="hint"><span class="k">힌트 ${i+1}</span><p>${esc(h)}</p></div>`).join('')}</div>
+  ${S.hints<s.hints.length?`<button class="btn ghost" type="button" id="moreHint" style="align-self:flex-start">${IC_BULB} 힌트 ${S.hints+1} 열기</button>`:`<p class="guide">힌트를 모두 열었어요. 이제 우리만의 생각을 더해 볼까요?</p>`}
+</div>
+<div class="ideas">${S.ideas.map((d,i)=>`
+  <div class="idea">
+    <div class="idea-h"><span class="idea-n">의견 ${i+1}</span>
+      <input type="text" data-idea="${i}" data-f="name" placeholder="이름" aria-label="의견 ${i+1}을 낸 사람" value="${esc(d.name)}">
+      ${S.ideas.length>1?`<button type="button" class="mini-x" data-delidea="${i}" aria-label="의견 ${i+1} 빼기">빼기</button>`:''}</div>
+    <textarea data-idea="${i}" data-f="text" aria-label="의견 ${i+1} 해결 방안" placeholder="무엇을, 어떻게 바꾸면 문제가 해결될까요?">${esc(d.text)}</textarea>
+  </div>`).join('')}
+  ${S.ideas.length<6?`<button type="button" class="idea add" id="addIdea">＋ 의견 더하기</button>`:''}
+</div>
+<p class="guide">의견이 두 개 넘게 모이면 다음 단계에서 장단점을 비교해 하나로 정해요.</p>`;},
+
+()=>{const s=sc();const has=S.ideas.some(d=>d.text.trim());return `
+<div class="stephead"><span class="eyebrow">5단계 · 방안 결정</span><h2>장단점을 비교해서 해결 방안을 정해요</h2><p>적절한 시간과 비용으로 할 수 있는 일인지, 어떤 효과가 나타날지도 생각해 봐요.</p></div>
+${has?`
+<div class="ex"><b>예시</b> 일회용 컵 대신 다회용 컵 사용하기 · 장점 <span class="pos">+★★★★★</span> · 단점 <span class="neg">−★★★☆☆</span> · 시간과 비용 <span class="pos">+★★★★☆</span> · 모두에게 도움 <span class="pos">+★★★★☆</span> → <b>총 별 10개</b></div>
+<p class="guide">별점: 장점·시간과 비용·모두에게 도움은 별이 많을수록 더하고, 단점은 별이 많을수록 빼요. 별을 다시 누르면 하나 줄어요.</p>
+<div id="decTable">${decTable()}</div>
 <div class="grid2">
   <div class="q">
-    <h3>힌트 상자</h3>
-    <div class="hints">${s.hints.slice(0,S.hints).map((h,i)=>`<div class="hint"><span class="k">힌트 ${i+1}</span><p>${esc(h)}</p></div>`).join('')}</div>
-    ${S.hints<s.hints.length?`<button class="btn ghost" type="button" id="moreHint">${IC_BULB} 힌트 ${S.hints+1} 열기</button>`:`<p class="guide">힌트를 모두 열었어요. 이제 우리만의 생각을 더해 볼까요?</p>`}
-    <h3 style="margin-top:8px">어떤 방법으로 해결할까요?</h3>
+    <h3>모둠에서 결정한 해결 방안</h3>
+    <textarea id="solution" style="min-height:110px" placeholder="표에서 ‘이걸로 결정’을 누르거나 직접 써요.">${esc(S.solution)}</textarea>
+    <h3>어떤 방법으로 해결하나요?</h3>
     <div class="chips">${TYPES.map(t=>chip('types',t,S.types.includes(t))).join('')}</div>
   </div>
   <div class="q">
-    <h3>우리의 해결 방법</h3>
-    <textarea id="solution" style="min-height:130px" placeholder="무엇을, 어떻게 바꾸면 문제가 해결될까요?">${esc(S.solution)}</textarea>
     <h3>누구의 도움이 필요할까요?</h3>
     <input type="text" id="helper" placeholder="예) 마을 회의, 버스 회사, 이장님" value="${esc(S.helper)}">
+    <h3>결정한 방안을 설계도로 그려요</h3>
+    <p class="guide">아래 그림판에 해결된 모습을 그려 보세요.</p>
   </div>
 </div>
 <div class="board-draw">
   <h3 style="font-size:20px">해결 설계도 그리기</h3>
   <div class="toolbar" id="tb"></div>
   <canvas id="pad" width="900" height="560" aria-label="설계도 그림판"></canvas>
-</div>`;},
+</div>`:`<div class="emptywall">4단계에서 모둠원 의견을 먼저 써 주세요.<br><button type="button" class="btn ghost" data-step="3" style="margin-top:10px">← 방안 탐색으로</button></div>`}`;},
 
 ()=>{const s=sc();return `
-<div class="stephead"><span class="eyebrow">5단계 · 실천</span><h2>해결 방법을 발표하고 나눠요</h2><p>발표 카드를 완성한 뒤 크게 띄워 발표해요.</p></div>
+<div class="stephead"><span class="eyebrow">6단계 · 실천</span><h2>해결 방법을 발표하고 나눠요</h2><p>발표 카드를 완성한 뒤 크게 띄워 발표해요.</p></div>
 <div class="grid2">
   <div class="q">
     <h3>모둠 이름</h3>
@@ -634,10 +691,26 @@ const views=[
 
 function chip(group,label,on){return `<button type="button" class="chip" data-group="${group}" data-val="${esc(label)}" aria-pressed="${on}">${esc(label)}</button>`;}
 
+/* ---------- 방안 결정 표 ---------- */
+function decTable(){
+  const rows=S.ideas.map((d,i)=>[d,i]).filter(([d])=>d.text.trim());
+  const tots=rows.map(([d])=>MB.ideaTotal(d));const best=Math.max(...tots);
+  const stars=(i,k,lab)=>{const n=((S.ideas[i].s||{})[k])||0;return `<span class="stars ${k==='con'?'neg':''}" role="group" aria-label="${lab} 별점"><b aria-hidden="true">${k==='con'?'−':'+'}</b>${[1,2,3,4,5].map(v=>`<button type="button" data-star="${i}|${k}|${v}" aria-label="${lab} 별 ${v}개" aria-pressed="${v<=n}">${v<=n?'★':'☆'}</button>`).join('')}</span>`;};
+  return `<div class="cmp-wrap"><table class="cmp edit"><tr><th>해결 방안</th><th>장점</th><th>단점</th><th>적절한 시간과<br>비용이 필요한가요?</th><th>모두에게<br>도움이 되나요?</th><th>총 별점</th><th>결정</th></tr>${rows.map(([d,i],r)=>`<tr class="${S.chosen===i?'pick':''}">
+    <th scope="row">${esc(d.text)}${d.name?`<small>${esc(d.name)}</small>`:''}</th>
+    <td><textarea data-idea="${i}" data-f="pro" aria-label="장점" placeholder="좋은 점">${esc(d.pro||'')}</textarea>${stars(i,'pro','장점')}</td>
+    <td><textarea data-idea="${i}" data-f="con" aria-label="단점" placeholder="아쉬운 점">${esc(d.con||'')}</textarea>${stars(i,'con','단점')}</td>
+    <td>${stars(i,'cost','시간과 비용')}</td><td>${stars(i,'all','모두에게 도움')}</td>
+    <td class="cmp-tot">별 ${tots[r]}개${rows.length>1&&tots[r]===best&&best>0?'<small>가장 많아요</small>':''}</td>
+    <td><button type="button" class="pickbtn" data-choose="${i}" aria-pressed="${S.chosen===i}">${S.chosen===i?'결정!':'이걸로 결정'}</button></td></tr>`).join('')}</table></div>`;
+}
+
 /* ---------- summary / card ---------- */
 function summary(){const s=sc();return {
   id:Date.now().toString(36),sid:s.id,emoji:s.emoji,title:s.title,place:s.place,team:S.team.trim(),
   who:[...S.who,...(S.whoEtc.trim()?[S.whoEtc.trim()]:[])],problem:S.sentence.trim()||s.story[s.story.length-1],
+  ideas:S.ideas.filter(d=>d.text.trim()).map(d=>({name:d.name.trim(),text:d.text.trim(),pro:(d.pro||'').trim(),con:(d.con||'').trim(),s:Object.assign({pro:0,con:0,cost:0,all:0},d.s||{})})),
+  chosen:S.chosen>=0?S.ideas.filter(d=>d.text.trim()).indexOf(S.ideas[S.chosen]):-1,
   tell:S.tell,causes:S.causes,causeText:S.causeText.trim(),types:S.types,solution:S.solution.trim(),helper:S.helper.trim(),
   drawing:S.drawing,action:S.action.trim(),effect:S.effect.trim(),likes:0};}
 const val=(v,ph)=>v?esc(v):`<span class="empty">${ph}</span>`;
@@ -646,12 +719,13 @@ function cardHTML(m){return `<div class="card">
   <dl>
     <dt>문제</dt><dd>${val(m.problem,'2단계에서 문제를 정리해요')}</dd>
     <dt>원인</dt><dd>${val([...m.causes,m.causeText].filter(Boolean).join('\n'),'3단계에서 원인을 찾아요')}</dd>
-    <dt>해결 방법</dt><dd>${val(m.solution,'4단계에서 해결 방법을 써요')}</dd>
+    <dt>비교한 방안</dt><dd>${val((m.ideas||[]).map((d,i)=>`${i===m.chosen?'✔ ':'· '}${d.text} (별 ${MB.ideaTotal(d)}개)`).join('\n'),'4·5단계에서 의견을 내고 비교해요')}</dd>
+    <dt>결정한 방안</dt><dd>${val(m.solution,'5단계에서 결정해요')}</dd>
     <dt>도움 요청</dt><dd>${val(m.helper,'누구의 도움이 필요할까요?')}</dd>
     <dt>먼저 할 일</dt><dd>${val(m.action,'가장 먼저 할 일을 써요')}</dd>
     <dt>기대 효과</dt><dd>${val(m.effect,'마을이 어떻게 달라질까요?')}</dd>
   </dl>
-  ${m.drawing?`<img src="${m.drawing}" alt="해결 설계도">`:`<p class="empty">4단계에서 그린 설계도가 여기에 나타나요.</p>`}
+  ${m.drawing?`<img src="${m.drawing}" alt="해결 설계도">`:`<p class="empty">5단계에서 그린 설계도가 여기에 나타나요.</p>`}
 </div>`;}
 
 /* ---------- render ---------- */
@@ -659,13 +733,13 @@ function render(){
   $('#path').innerHTML=STEPS.map((t,i)=>`<button type="button" class="stone ${i===S.step?'on':i<S.step?'done':''}" data-step="${i}" ${i===S.step?'aria-current="step"':''}><span class="dot">${i+1}</span><span class="lab">${t}</span></button>`).join('');
   $('#main').innerHTML=views[S.step]();
   const prev=S.step>0?`<button class="btn ghost" type="button" id="prev">← ${STEPS[S.step-1]}</button>`:'<span></span>';
-  const next=S.step<4?`<button class="btn primary" type="button" id="next">${STEPS[S.step+1]} →</button>`:`<button class="btn sun" type="button" id="again">다른 문제 해결하러 가기</button>`;
+  const next=S.step<5?`<button class="btn primary" type="button" id="next">${STEPS[S.step+1]} →</button>`:`<button class="btn sun" type="button" id="again">다른 문제 해결하러 가기</button>`;
   $('#nav').innerHTML=prev+next;
   $('#pick').value=S.sid;
-  if(S.step===3) setupPad();
-  if(S.step===4) $('#preview').innerHTML=cardHTML(summary());
+  if(S.step===4&&$('#pad')) setupPad();
+  if(S.step===5) $('#preview').innerHTML=cardHTML(summary());
 }
-function go(i){S.step=Math.max(0,Math.min(4,i));render();window.scrollTo({top:0,behavior:reduce?'auto':'smooth'});}
+function go(i){S.step=Math.max(0,Math.min(5,i));render();window.scrollTo({top:0,behavior:reduce?'auto':'smooth'});}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
@@ -676,6 +750,12 @@ document.addEventListener('click',e=>{
   if(t.dataset.step){go(+t.dataset.step);return;}
   if(t.dataset.group){const g=t.dataset.group,v=t.dataset.val,arr=S[g];const i=arr.indexOf(v);i>=0?arr.splice(i,1):arr.push(v);t.setAttribute('aria-pressed',i<0);S.touched=true;return;}
   if(t.dataset.open){S.opened[t.dataset.open]=true;S.touched=true;render();return;}
+  if(t.dataset.star){const [i,k,v]=t.dataset.star.split('|');const d=S.ideas[+i];d.s=Object.assign({pro:0,con:0,cost:0,all:0},d.s);d.s[k]=d.s[k]===+v?+v-1:+v;S.touched=true;$('#decTable').innerHTML=decTable();const nb=$(`[data-star="${i}|${k}|${v}"]`);if(nb)nb.focus();return;}
+  if(t.dataset.choose){const i=+t.dataset.choose,d=S.ideas[i];S.chosen=i;S.touched=true;
+    if(!S.solution.trim()||S.solution===S.autoSol){S.solution=d.text.trim();S.autoSol=S.solution;const ta=$('#solution');if(ta)ta.value=S.solution;}
+    $('#decTable').innerHTML=decTable();toast('결정했어요. 아래에 결정한 방안을 다듬고 설계도를 그려요');return;}
+  if(t.dataset.delidea){const i=+t.dataset.delidea;S.ideas.splice(i,1);if(S.chosen===i)S.chosen=-1;else if(S.chosen>i)S.chosen--;render();return;}
+  if(t.id==='addIdea'){S.ideas.push({name:'',text:''});render();const ins=document.querySelectorAll('[data-f="name"]');if(ins.length)ins[ins.length-1].focus();return;}
   switch(t.id){
     case 'next':go(S.step+1);break;
     case 'prev':go(S.step-1);break;
@@ -690,7 +770,8 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   const id=e.target.id;
-  if(['whoEtc','sentence','causeText','solution','helper','team','action','effect'].includes(id)){S[id]=e.target.value;S.touched=true;if(S.step===4)$('#preview').innerHTML=cardHTML(summary());}
+  if(e.target.dataset.idea){const d=S.ideas[+e.target.dataset.idea];if(d){d[e.target.dataset.f]=e.target.value;S.touched=true;}return;}
+  if(['whoEtc','sentence','causeText','solution','helper','team','action','effect'].includes(id)){S[id]=e.target.value;S.touched=true;if(S.step===5)$('#preview').innerHTML=cardHTML(summary());}
 });
 $('#pick').addEventListener('change',e=>{if(e.target.value)askSwitch(e.target.value,false);});
 
@@ -739,11 +820,12 @@ function setupPad(){
 /* ---------- presentation ---------- */
 let slides=[],si=0;
 function openShow(m){
-  m=Object.assign({who:[],causes:[],types:[],tell:[],problem:"",solution:"",causeText:"",helper:"",action:"",effect:""},m);
+  m=Object.assign({ideas:[],chosen:-1,who:[],causes:[],types:[],tell:[],problem:"",solution:"",causeText:"",helper:"",action:"",effect:""},m);
   slides=[
     `<span class="tag">우리가 찾은 문제</span>${img(m.sid,'scene')?`<img src="${img(m.sid,'scene')}" alt="">`:`<div class="em" aria-hidden="true">${m.emoji}</div>`}<h2>${esc(m.title)}</h2><p class="big">${esc(m.problem)}</p>${m.who.length?`<div class="pills">${m.who.map(w=>`<span>${esc(w)}</span>`).join('')}</div>`:''}`,
     `<span class="tag">원인은 이것이에요</span>${m.causes.length?`<div class="pills">${m.causes.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`:''}<p class="big">${m.causeText?esc(m.causeText):(m.causes.length?'':'원인을 아직 정리하지 않았어요.')}</p>`,
-    `<span class="tag">우리의 해결 방법</span>${m.drawing?`<img src="${m.drawing}" alt="해결 설계도">`:''}<p class="big">${m.solution?esc(m.solution):'해결 방법을 아직 쓰지 않았어요.'}</p>${m.types.length?`<div class="pills">${m.types.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`:''}`,
+    ...(m.ideas.length?[`<span class="tag">여러 해결 방안을 비교했어요</span>${MB.compareHTML(m.ideas,m.chosen)}`]:[]),
+    `<span class="tag">우리가 결정한 해결 방안</span>${m.drawing?`<img src="${m.drawing}" alt="해결 설계도">`:''}<p class="big">${m.solution?esc(m.solution):'해결 방법을 아직 쓰지 않았어요.'}</p>${m.types.length?`<div class="pills">${m.types.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`:''}`,
     `<span class="tag">이렇게 실천할게요</span>${m.helper?`<p class="big"><b>도움 요청</b> · ${esc(m.helper)}</p>`:''}${m.action?`<p class="big"><b>먼저 할 일</b> · ${esc(m.action)}</p>`:''}<h2>${m.effect?esc(m.effect):'모두가 함께 행복한 마을!'}</h2>`
   ];
   si=0;const el=$('#show');el.hidden=false;drawShow(m);
@@ -774,14 +856,14 @@ async function postIt(){
   const m=summary();
   if(!CLS){toast('먼저 반을 골라 주세요');showPicker();return;}
   if(!m.team){toast('모둠 이름을 먼저 써 주세요');$('#team').focus();return;}
-  if(!m.solution){toast('4단계에서 해결 방법을 써 주세요');return;}
+  if(!m.solution){toast('5단계에서 결정한 해결 방안을 써 주세요');return;}
   if(!ready){toast('아직 저장소에 연결되지 않았어요. 인터넷을 확인해 주세요');return;}
   posting=true;const btn=$('#post');if(btn){btn.disabled=true;btn.textContent='올리는 중…';}
   try{
     const drawing=await shrink(m.drawing);
     const row={uid:MB.uid(),at:MB.now(),sid:m.sid,emoji:m.emoji,title:m.title,place:m.place,team:m.team.slice(0,40),
       who:m.who,problem:m.problem,tell:m.tell,causes:m.causes,causeText:m.causeText,types:m.types,
-      solution:m.solution.slice(0,2000),helper:m.helper,action:m.action,effect:m.effect};
+      solution:m.solution.slice(0,2000),ideas:m.ideas,chosen:m.chosen,helper:m.helper,action:m.action,effect:m.effect};
     if(drawing)row.drawing=drawing;
     Object.keys(row).forEach(k=>{if(row[k]===''||(Array.isArray(row[k])&&!row[k].length))delete row[k];});
     row.team=m.team.slice(0,40);row.solution=m.solution.slice(0,2000);
