@@ -497,6 +497,325 @@
     }
   };
 
+  // =====================================================================
+  // 4단원 사각형 ②: 도형·직선 그림과 개념 문장까지 바뀌는 문항
+  // =====================================================================
+  const dotc = (x, y) => `<circle cx="${f1(x)}" cy="${f1(y)}" r="5" style="fill:#1D2A44;stroke:none"/>`;
+  /** 기울어진 직각 표시: 꼭짓점 (cx,cy), 두 변 방향 단위벡터 u, v */
+  const raR = (cx, cy, u, v, s = 11) => `<path d="M ${f1(cx + u[0] * s)} ${f1(cy + u[1] * s)} L ${f1(cx + u[0] * s + v[0] * s)} ${f1(cy + u[1] * s + v[1] * s)} L ${f1(cx + v[0] * s)} ${f1(cy + v[1] * s)}" style="stroke-width:2"/>`;
+  const seg = (cx, cy, deg, len) => { const dx = (Math.cos(rad(deg)) * len) / 2, dy = (-Math.sin(rad(deg)) * len) / 2; return ln(cx - dx, cy - dy, cx + dx, cy + dy); };
+  const sfig = draw => ({ w: 160, h: 110, grid: 10, draw });
+  const bigfig = P => ({ w: 320, h: 220, grid: 20, draw: poly(P.map(p => [p[0] * 2, p[1] * 2])) });
+  const ira = (R, a, b) => R.int(a, b);
+  const rLa = w => (hasB(w[w.length - 1]) ? w + "이라고" : w + "라고");
+
+  /** 변끼리 평행·수직인 쌍의 수와 사각형 이름을 좌표로 직접 계산 */
+  function shapeInfo(P) {
+    const n = P.length, V = P.map((p, i) => [P[(i + 1) % n][0] - p[0], P[(i + 1) % n][1] - p[1]]), len = V.map(v => Math.hypot(v[0], v[1]));
+    let par = 0, perp = 0, minS = 1, minC = 1;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const s = Math.abs(V[i][0] * V[j][1] - V[i][1] * V[j][0]) / (len[i] * len[j]), c = Math.abs(V[i][0] * V[j][0] + V[i][1] * V[j][1]) / (len[i] * len[j]);
+      if (s < 0.01) par++; else minS = Math.min(minS, s);
+      if (c < 0.01) perp++; else minC = Math.min(minC, c);
+    }
+    const kinds = [];
+    if (n === 4) {
+      const cr = (a, b) => Math.abs(a[0] * b[1] - a[1] * b[0]) / (Math.hypot(...a) * Math.hypot(...b)) < 0.01;
+      const np = cr(V[0], V[2]) + cr(V[1], V[3]);
+      if (np) kinds.push("trap");
+      if (np === 2) {
+        kinds.push("para");
+        const eq = Math.max(...len) - Math.min(...len) < 0.5, right = Math.abs(V[0][0] * V[1][0] + V[0][1] * V[1][1]) < 0.5;
+        if (eq) kinds.push("rhomb");
+        if (right) kinds.push("rect");
+        if (eq && right) kinds.push("square");
+      }
+    }
+    return { par, perp, kinds, minS, minC };
+  }
+  const box = (cx, cy, w, h) => [[cx - w / 2, cy - h / 2], [cx + w / 2, cy - h / 2], [cx + w / 2, cy + h / 2], [cx - w / 2, cy + h / 2]];
+  const mirror = (R, P) => (R.chance(0.5) ? P.map(p => [160 - p[0], p[1]]) : P);
+  /** 160×110 칸 안의 도형 (모눈 10 단위) */
+  function makeShape(R, k) {
+    const cx = 80, cy = 55;
+    for (let t = 0; t < 400; t++) {
+      let P;
+      if (k === "square") { const s = R.pick([60, 70, 80]); P = box(cx, cy, s, s); }
+      else if (k === "rect") { const w = R.pick([100, 110, 120]), h = R.pick([50, 60]); P = box(cx, cy, w, h); }
+      else if (k === "rhomb") { const p = R.pick([30, 40, 50, 60]), q = R.pick([30, 40, 45]); if (p === q) continue; P = [[cx, cy - q], [cx + p, cy], [cx, cy + q], [cx - p, cy]]; }
+      else if (k === "para") { const W = R.pick([80, 90, 100]), h = R.pick([50, 60]), s = R.pick([-30, -20, 20, 30]), bx = cx - W / 2 - s / 2; P = [[bx, cy + h / 2], [bx + W, cy + h / 2], [bx + W + s, cy - h / 2], [bx + s, cy - h / 2]]; }
+      else if (k === "trap") { const W = R.pick([110, 120, 130]), T = R.pick([40, 50, 60]), off = R.pick([-20, -10, 0, 10, 20]), h = R.pick([60, 70]); P = [[cx - W / 2, cy + h / 2], [cx + W / 2, cy + h / 2], [cx + off + T / 2, cy - h / 2], [cx + off - T / 2, cy - h / 2]]; }
+      else if (k === "rtrap") { const W = R.pick([100, 110, 120]), T = R.pick([50, 60, 70]), h = R.pick([60, 70]), x0 = cx - W / 2; P = mirror(R, [[x0, cy + h / 2], [x0 + W, cy + h / 2], [x0 + T, cy - h / 2], [x0, cy - h / 2]]); }
+      else if (k === "irr") { P = [[25, 85], [140, 95], [115, 20], [55, 40]].map(p => [p[0] + R.int(-1, 1) * 10, p[1] + R.int(-1, 1) * 10]); P = mirror(R, P); }
+      else if (k === "tri") { P = [[R.pick([20, 30]), 90], [R.pick([130, 140]), 90], [R.int(5, 11) * 10, R.pick([15, 20, 30])]]; }
+      else if (k === "rtri") { const w = R.pick([90, 100, 110]), h = R.pick([60, 70]); P = mirror(R, [[30, 90], [30 + w, 90], [30, 90 - h]]); }
+      else if (k === "hex") { const r = 48, a0 = R.pick([0, 30]); P = [0, 1, 2, 3, 4, 5].map(i => [cx + r * Math.cos(rad(a0 + 60 * i)), cy + r * Math.sin(rad(a0 + 60 * i))]); }
+      else if (k === "pent") { const r = 48; P = [0, 1, 2, 3, 4].map(i => [cx + r * Math.cos(rad(-90 + 72 * i)), cy + 4 + r * Math.sin(rad(-90 + 72 * i))]); }
+      const inf = shapeInfo(P);
+      if (inf.minS < 0.12 || inf.minC < 0.12) continue;     // 거의 평행·거의 수직처럼 헷갈리는 모양은 버림
+      if ((k === "irr" || k === "tri") && (inf.par || inf.perp || inf.minS < 0.3 || inf.minC < 0.2)) continue;   // 평행·수직처럼 보이지도 않게
+      return P;
+    }
+    if (k === "irr") return [[25, 85], [140, 95], [115, 20], [55, 40]];
+    if (k === "tri") return [[20, 90], [140, 90], [90, 20]];
+    return makeShape(R, "rect");
+  }
+
+  // ---------- 개념 문장 (문항 파일 opts 에 문장 목록을 적음) ----------
+  const FRIENDS = ["가온", "나래", "다온", "라희", "마루", "보미", "서진", "아라", "하람", "예솔"];
+  /** 하나 골라 내기: opts.items = [문항, …] (보기 섞기는 shuffle:true) */
+  G["pick"] = (R, o) => {
+    const q = JSON.parse(JSON.stringify(R.pick(o.items)));
+    if (q.shuffle && Array.isArray(q.options)) {
+      const order = R.shuffle(q.options.map((_, i) => i)), remap = x => order.indexOf(x - 1) + 1;
+      q.answer = Array.isArray(q.answer) ? q.answer.map(remap).sort((a, b) => a - b) : remap(q.answer);
+      q.options = order.map(i => q.options[i]);
+    }
+    delete q.shuffle;
+    return q;
+  };
+  /** OX: opts.t = 옳은 문장들, opts.f = [[틀린 문장, 까닭], …] */
+  G["facts.ox"] = (R, o) => {
+    if (R.chance(0.5)) return { type: "ox", text: R.pick(o.t), answer: "O" };
+    const f = R.pick(o.f);
+    return { type: "ox", text: f[0], answer: "X", explain: f[1] };
+  };
+  /** 잘못(바르게) 말한 친구 찾기 */
+  G["facts.friends"] = (R, o) => {
+    const right = R.chance(0.25), nm = R.shuffle(FRIENDS).slice(0, 4).sort();
+    const odd = right ? R.pick(o.t) : R.pick(o.f), rest = right ? R.shuffle(o.f).slice(0, 3).map(x => x[0]) : R.shuffle(o.t).slice(0, 3);
+    const oddText = right ? odd : odd[0], list = R.shuffle([oddText, ...rest]);
+    return choice(right ? "바르게 말한 친구는 누구인가요?" : "잘못 말한 친구는 누구인가요?", list.map((s, i) => `${nm[i]}: ${s}`), list.indexOf(oddText) + 1, right ? {} : { explain: odd[1] });
+  };
+  /** 옳은 것 모두 고르기 */
+  G["facts.multi"] = (R, o) => {
+    const k = R.int(1, 3), ts = R.shuffle(o.t).slice(0, k), fs = R.shuffle(o.f).slice(0, 4 - k).map(x => x[0]);
+    const list = R.shuffle([...ts, ...fs]);
+    return { type: "choice", multi: true, text: o.title || "옳은 것을 모두 고르세요.", options: list, answer: list.map((s, i) => (ts.includes(s) ? i + 1 : 0)).filter(Boolean) };
+  };
+
+  // ---------- 수직·평행 ----------
+  /** 네 그림 중 수직(평행)인 두 직선 고르기 */
+  G["geo.whichPair"] = (R, o) => {
+    const rel = o.rel || "perp";
+    const perpFig = () => {
+      const v = R.int(0, 2);
+      if (v === 0) { const x = R.int(6, 10) * 10, y = R.int(4, 7) * 10; return sfig(ln(15, y, 145, y) + ln(x, 8, x, 102) + ra(x, y, 1, -1)); }
+      if (v === 1) { const a = R.pick([30, 45, 60, 120, 135, 150]), u = [Math.cos(rad(a)), -Math.sin(rad(a))], w = [Math.cos(rad(a + 90)), -Math.sin(rad(a + 90))]; return sfig(seg(80, 55, a, 100) + seg(80, 55, a + 90, 100) + raR(80, 55, u, w)); }
+      const x = R.int(4, 12) * 10; return sfig(ln(15, 90, 145, 90) + ln(x, 12, x, 90) + ra(x, 90, x > 80 ? -1 : 1, -1));
+    };
+    const parFig = () => {
+      const a = R.pick([0, 0, 20, 30, 150, 160, 90]), g = R.pick([30, 36, 40]), nx = Math.sin(rad(a)) * g / 2, ny = Math.cos(rad(a)) * g / 2, L2 = a === 90 ? 90 : a % 180 === 0 ? 130 : 110;
+      return sfig(seg(80 - nx, 55 - ny, a, L2) + seg(80 + nx, 55 + ny, a, L2));
+    };
+    const crossFig = () => { const a = R.pick([20, 30, 150, 160]), d = R.pick([45, 55, 60]); return sfig(seg(80, 55, a, 120) + seg(80, 55, a + d, 100)); };
+    const meetFig = () => { const e1 = R.int(1, 2) * 10, e2 = R.int(1, 2) * 10, P = R.chance(0.5); const y1 = 25, y2 = 85; return sfig(P ? ln(15, y1, 145, y1 + e1) + ln(15, y2, 145, y2 - e2) : ln(15, y1 + e1, 145, y1) + ln(15, y2 - e2, 145, y2)); };
+    const leanFig = () => { const x = R.int(6, 10) * 10, y = R.int(5, 7) * 10, a = R.pick([65, 70, 110, 115]); return sfig(ln(15, y, 145, y) + ln(x, y, x + 60 * Math.cos(rad(a)), y - 60 * Math.sin(rad(a)))); };
+    const good = rel === "perp" ? perpFig() : parFig();
+    const bad = rel === "perp" ? [crossFig(), parFig(), R.chance(0.5) ? meetFig() : leanFig()] : [crossFig(), perpFig(), meetFig()];
+    const list = R.shuffle([good, ...bad]);
+    return choice(rel === "perp" ? "두 직선이 서로 수직인 것을 고르세요." : "두 직선이 서로 평행한 것을 고르세요.", list.map(f => ({ figure: f })), list.indexOf(good) + 1);
+  };
+  /** 직선 가에 수직(평행)인 직선 모두 고르기 */
+  G["geo.relLines"] = (R, o) => {
+    const rel = o.rel || "perp", nm = ["나", "다", "라"];
+    let good; do { good = [R.chance(0.5), R.chance(0.5), R.chance(0.5)]; } while (!good.some(Boolean) || good.every(Boolean));
+    let draw = "";
+    if (rel === "perp") {
+      draw += ln(20, 120, 390, 120) + tx(380, 110, "가");
+      [100, 200, 320].forEach((x, i) => {
+        if (good[i]) draw += ln(x, 20, x, 200) + tx(x + 16, 32, nm[i]);
+        else { const a = R.pick([64, 68, 72, 108, 112, 116]), dx = 90 / Math.tan(rad(a)); draw += ln(x - dx, 210, x + dx, 30) + tx(f1(x + dx + 16), 42, nm[i]); }
+      });
+      return { type: "choice", multi: true, text: "직선 가에 수직인 직선을 모두 고르세요.", options: nm.map(n => "직선 " + n), answer: good.map((g, i) => (g ? i + 1 : 0)).filter(Boolean), figure: { w: 400, h: 220, grid: 20, draw } };
+    }
+    draw += ln(40, 40, 390, 40) + tx(24, 46, "가");
+    [90, 140, 190].forEach((y, i) => {
+      if (good[i]) draw += ln(40, y, 390, y);
+      else { const d = R.pick([-1, 1]) * R.pick([30, 34, 38]); draw += ln(40, y - d / 2, 390, y + d / 2); }
+      draw += tx(24, y + 6, nm[i]);
+    });
+    return { type: "choice", multi: true, text: "직선 가와 평행한 직선을 모두 고르세요.", options: nm.map(n => "직선 " + n), answer: good.map((g, i) => (g ? i + 1 : 0)).filter(Boolean), figure: { w: 400, h: 220, grid: 20, draw } };
+  };
+  /** 도형에서 평행(수직)인 변 몇 쌍 */
+  G["geo.sidePairs"] = (R, o) => {
+    const rel = o.rel || "par", kinds = o.kinds || (rel === "par" ? ["trap", "rtrap", "para", "rect", "hex", "tri", "pent", "irr"] : ["rect", "square", "rtrap", "rtri", "para", "rhomb", "trap"]);
+    const P = makeShape(R, R.pick(kinds)), inf = shapeInfo(P);
+    return cnt(`도형에서 서로 ${rel === "par" ? "평행" : "수직"}인 변은 모두 몇 쌍인가요?`, rel === "par" ? inf.par : inf.perp, "쌍", { figure: bigfig(P) });
+  };
+  const PROP_POOL = {
+    perp: ["rect", "square", "rtrap", "rtri", "para", "rhomb", "trap", "tri", "irr"],
+    par: ["trap", "rtrap", "para", "rect", "tri", "irr", "hex", "pent", "rtri"],
+    trap: ["trap", "rtrap", "para", "rect", "rhomb", "irr", "tri", "irr"],
+    para: ["para", "rect", "rhomb", "square", "trap", "rtrap", "irr"],
+    rhomb: ["rhomb", "rhomb", "square", "para", "rect", "trap", "irr"],
+    rect: ["rect", "square", "para", "rhomb", "trap", "rtrap"],
+    square: ["square", "rect", "rhomb", "para", "trap"],
+  };
+  const KNAME2 = { trap: "사다리꼴", para: "평행사변형", rhomb: "마름모", rect: "직사각형", square: "정사각형" };
+  /** 성질에 맞는 도형 모두 고르기 (보기가 그림) */
+  G["geo.pickShapes"] = (R, o) => {
+    const prop = o.prop || "trap", n = o.n || 4, has = P => { const f = shapeInfo(P); return prop === "perp" ? f.perp > 0 : prop === "par" ? f.par > 0 : f.kinds.includes(prop); };
+    for (let t = 0; t < 100; t++) {
+      const Ps = Array.from({ length: n }, () => makeShape(R, R.pick(PROP_POOL[prop])));
+      const ans = Ps.map((P, i) => (has(P) ? i + 1 : 0)).filter(Boolean);
+      if (!ans.length || ans.length === n) continue;
+      const opts = Ps.map(P => ({ figure: sfig(poly(P)) }));
+      if (new Set(opts.map(x => x.figure.draw)).size < n) continue;
+      const text = prop === "perp" ? "서로 수직인 변이 있는 도형을 모두 고르세요." : prop === "par" ? "서로 평행한 변이 있는 도형을 모두 고르세요." : `${KNAME2[prop]}을(를) 모두 고르세요.`;
+      return { type: "choice", multi: true, text, options: opts, answer: ans };
+    }
+  };
+  /** 직사각형(평행사변형)에서 한 변과 수직(평행)인 변 고르기 */
+  G["geo.rectSides"] = (R, o) => {
+    const rel = o.rel || "perp", isPara = rel === "par" && R.chance(0.5);
+    const w = R.int(8, 11) * 20, h = R.int(4, 6) * 20, s = isPara ? R.pick([-40, 40]) : 0, x0 = 60 + Math.max(0, -s), y0 = 30;
+    const P = [[x0 + s, y0], [x0, y0 + h], [x0 + w, y0 + h], [x0 + w + s, y0]];   // ㄱ ㄴ ㄷ ㄹ
+    const sides = ["ㄱㄴ", "ㄴㄷ", "ㄷㄹ", "ㄱㄹ"], k = R.int(0, 3);
+    const others = R.shuffle([0, 1, 2, 3].filter(i => i !== k)), ok = i => (rel === "perp" ? (i - k + 4) % 4 !== 2 : (i - k + 4) % 4 === 2);
+    const name = isPara ? "평행사변형" : "직사각형";
+    return { type: "choice", multi: true, text: `${name} ㄱㄴㄷㄹ에서 변 ${sides[k]}에 ${rel === "perp" ? "수직" : "평행"}인 변을 모두 고르세요.`,
+      options: others.map(i => "변 " + sides[i]), answer: others.map((i, j) => (ok(i) ? j + 1 : 0)).filter(Boolean),
+      figure: { w: Math.max(...P.map(p => p[0])) + 60, h: y0 + h + 40, draw: poly(P) + vlab(P, ["ㄱ", "ㄴ", "ㄷ", "ㄹ"]) } };
+  };
+  /** 수선 n개를 그었을 때 생기는 직각의 수 */
+  G["geo.perpRight"] = R => {
+    const n = R.int(1, 3), xs = R.shuffle([80, 140, 200, 260, 320]).slice(0, n).sort((a, b) => a - b);
+    let draw = ln(20, 100, 390, 100) + tx(380, 90, "가");
+    xs.forEach(x => (draw += ln(x, 15, x, 185) + ra(x, 100, 1, -1)));
+    return cnt(`직선 가에 대한 수선을 ${n}개 그었습니다.\n직선끼리 만나서 생긴 직각은 모두 몇 개인가요?`, 4 * n, "개", { figure: { w: 400, h: 200, draw }, explain: "수선 하나가 직선 가와 만나는 곳마다 직각이 4개씩 생겨요." });
+  };
+
+  // ---------- 평행선 사이의 거리 ----------
+  G["geo.whichDist"] = R => {
+    const y1 = 40, y2 = y1 + R.int(4, 6) * 20, pos = R.int(0, 2), xs = [80, 200, 320], lab = ["㉠", "㉡", "㉢"];
+    let draw = ln(20, y1, 390, y1) + tx(16, y1 - 10, "가") + ln(20, y2, 390, y2) + tx(16, y2 + 22, "나");
+    xs.forEach((x, i) => {
+      if (i === pos) draw += ln(x, y1, x, y2) + ra(x, y2, 1, -1);
+      else { const dx = R.pick([-1, 1]) * R.int(3, 6) * 10; draw += ln(x - dx / 2, y1, x + dx / 2, y2); }
+      draw += tx(x + 22, f1((y1 + y2) / 2 + 6), lab[i], 18);
+    });
+    const text = R.chance(0.5) ? "직선 가와 직선 나는 서로 평행합니다.\n평행선 사이의 거리를 나타내는 선분을 고르세요." : "직선 가와 직선 나는 서로 평행합니다.\n평행선 사이에 그은 선분 중 길이가 가장 짧은 것을 고르세요.";
+    return choice(text, lab.map(l => ({ label: l })), pos + 1, { figure: { w: 400, h: y2 + 34, draw } });
+  };
+
+  // ---------- 사다리꼴·평행사변형 꼭짓점 찍기 ----------
+  G["geo.pointPick"] = (R, o) => {
+    const kind = o.kind || R.pick(["trap", "para"]), g = 20;
+    for (let t = 0; t < 300; t++) {
+      const ay = R.int(7, 8), ax = R.int(1, 4), bx = ax + R.int(5, 8), h = R.int(3, 5), C = [bx + R.int(-3, 2), ay - h], A = [ax, ay], B = [bx, ay];
+      if (C[0] > 14 || C[0] <= ax + 1) continue;
+      const PP = [A[0] + C[0] - B[0], C[1]];
+      let D;
+      if (kind === "para") D = PP;
+      else { const xs = []; for (let x = 1; x < C[0] - 1; x++) if (x !== PP[0]) xs.push(x); if (!xs.length) continue; D = [R.pick(xs), C[1]]; }
+      if (D[0] < 1 || D[0] > 14) continue;
+      const cand = [];
+      for (let x = Math.max(1, D[0] - 4); x <= Math.min(14, D[0] + 4); x++) for (let y = Math.max(1, D[1] - 3); y < ay; y++) {
+        const p = [x, y];
+        if (Math.hypot(x - D[0], y - D[1]) < 2 || Math.hypot(x - C[0], y - C[1]) < 2) continue;
+        if (y === C[1]) continue;                                                           // 윗변이 아랫변과 평행해지는 자리 제외
+        if ((x - A[0]) * (C[1] - B[1]) - (y - A[1]) * (C[0] - B[0]) === 0) continue;         // 변 ㄱㄹ이 변 ㄴㄷ과 평행해지는 자리 제외
+        if (x >= Math.min(B[0], C[0]) && x <= Math.max(B[0], C[0]) && (x - B[0]) * (C[1] - B[1]) - (y - B[1]) * (C[0] - B[0]) === 0) continue;
+        cand.push(p);
+      }
+      const pick = [];
+      for (const p of R.shuffle(cand)) { if (pick.every(q => Math.hypot(p[0] - q[0], p[1] - q[1]) >= 2)) pick.push(p); if (pick.length === 3) break; }
+      if (pick.length < 3) continue;
+      const pts = R.shuffle([D, ...pick]), lab = ["①", "②", "③", "④"];
+      let draw = ln(A[0] * g, A[1] * g, B[0] * g, B[1] * g) + ln(B[0] * g, B[1] * g, C[0] * g, C[1] * g);
+      pts.forEach((p, i) => (draw += dotc(p[0] * g, p[1] * g) + tx(p[0] * g + 14, p[1] * g - 8, lab[i], 17)));
+      return choice(`두 선분을 이용하여 ${kind === "para" ? "평행사변형" : "사다리꼴"}을 그리려고 합니다.\n나머지 한 꼭짓점을 어느 점에 찍어야 하나요?`, lab.map(l => ({ label: l })), pts.indexOf(D) + 1,
+        { figure: { w: 300, h: 190, grid: 20, draw }, explain: kind === "para" ? "마주 보는 두 쌍의 변이 모두 평행해지는 점을 찾아요." : "주어진 선분과 평행한 변이 생기는 점을 찾아요." });
+    }
+  };
+  /** 종이띠를 잘라 생긴 사다리꼴·평행사변형 세기 */
+  G["geo.trapCut"] = (R, o) => {
+    for (let t = 0; t < 200; t++) {
+      const n = R.int(3, 5), span = 360 / (n + 1), cuts = [];
+      for (let i = 1; i <= n; i++) cuts.push([20 * Math.round((20 + span * i) / 20) + R.pick([-20, 0, 20]), R.pick([-40, 0, 0, 40])]);
+      const B = [[20, 0], ...cuts, [380, 0]];
+      let ok = true;
+      for (let i = 0; i < B.length - 1; i++) if (B[i + 1][0] - B[i][0] < 40 || B[i + 1][0] + B[i + 1][1] - (B[i][0] + B[i][1]) < 40) ok = false;
+      if (!ok) continue;
+      let par = 0; for (let i = 0; i < B.length - 1; i++) if (B[i][1] === B[i + 1][1]) par++;
+      const ask = o.ask || (R.chance(0.6) ? "para" : "trap");
+      if (ask === "para" && par === 0 && R.chance(0.7)) continue;
+      let draw = poly([[20, 40], [380, 40], [380, 120], [20, 120]]);
+      cuts.forEach(([b, d]) => (draw += ln(b, 120, b + d, 40)));
+      return ask === "para"
+        ? cnt("직사각형 모양의 종이띠를 선을 따라 잘랐습니다.\n잘라 낸 도형 중 평행사변형은 모두 몇 개인가요?", par, "개", { figure: { w: 400, h: 160, grid: 20, draw }, explain: "위아래 변뿐 아니라 양옆의 두 변도 서로 평행한 조각만 평행사변형이에요." })
+        : cnt("직사각형 모양의 종이띠를 선을 따라 잘랐습니다.\n잘라 낸 도형 중 사다리꼴은 모두 몇 개인가요?", n + 1, "개", { figure: { w: 400, h: 160, grid: 20, draw }, explain: "종이띠의 위아래 변이 평행해서 잘라 낸 사각형이 모두 사다리꼴이에요." });
+    }
+  };
+  G["geo.trapPerim"] = R => {
+    const a = R.int(9, 16), b = R.int(3, a - 4), c = R.int(4, 9), W = 260, T = (W * b) / a, x0 = 50, y0 = 150, yt = 50;
+    const P = [[x0, y0], [x0 + W, y0], [x0 + W / 2 + T / 2, yt], [x0 + W / 2 - T / 2, yt]];
+    const base = poly(P) + tx(x0 + W / 2, y0 + 26, `${a} cm`, 16) + tx(x0 + W / 2, yt - 10, `${b} cm`, 16);
+    const legL = tx(f1((P[0][0] + P[3][0]) / 2 - 34), (y0 + yt) / 2 + 6, `${c} cm`, 16), legR = tx(f1((P[1][0] + P[2][0]) / 2 + 34), (y0 + yt) / 2 + 6, `${c} cm`, 16);
+    if (R.chance(0.4)) return cnt(`두 옆변의 길이가 같은 사다리꼴입니다.\n네 변의 길이의 합이 ${a + b + 2 * c} cm일 때, 한 옆변은 몇 cm인가요?`, c, "cm", { figure: { w: 360, h: 190, draw: base } });
+    return cnt("사다리꼴의 네 변의 길이의 합은 몇 cm인가요?", a + b + 2 * c, "cm", { figure: { w: 360, h: 190, draw: base + legL + legR } });
+  };
+  /** 사다리꼴이 아닌 까닭 */
+  G["geo.whyNot"] = R => {
+    const P = makeShape(R, "irr");
+    const opts = R.shuffle(["평행한 변이 없기 때문에", "네 변의 길이가 다르기 때문에", "직각이 없기 때문에", "꼭짓점이 4개이기 때문에"]);
+    return choice("다음 도형이 사다리꼴이 아닌 까닭은 무엇인가요?", opts, opts.indexOf("평행한 변이 없기 때문에") + 1, { figure: bigfig(P) });
+  };
+
+  // ---------- 마름모 ----------
+  G["geo.rhombDiag"] = R => {
+    const a = notRight(R, 60, 120), g = rhomb(a), P = g.P, ang = R.pick(["ㄱㅇㄴ", "ㄴㅇㄷ", "ㄷㅇㄹ", "ㄱㅇㄹ"]);
+    const draw = g.shape + ln(P[0][0], P[0][1], P[2][0], P[2][1]) + ln(P[1][0], P[1][1], P[3][0], P[3][1]) + tx(f1(g.cx + 14), f1(g.cy + 22), "ㅇ", 17);
+    return cnt(`마름모의 마주 보는 꼭짓점끼리 이었습니다.\n각 ${ang}은 몇 도인가요?`, 90, "°", { figure: { w: g.w, h: g.h, draw }, explain: "마름모의 마주 보는 꼭짓점끼리 이은 두 선분은 서로 수직으로 만나요." });
+  };
+  G["geo.rhombTris"] = R => {
+    const fig = { w: 300, h: 150, draw: poly([[40, 130], [160, 130], [100, 26]]) + poly([[160, 130], [220, 26], [100, 26]]) };
+    if (R.chance(0.3)) {
+      const opts = R.shuffle(["직사각형", "마름모", "정사각형", "삼각형"]);
+      return choice("크기가 같은 정삼각형 2개를 겹치지 않게 이어 붙이면\n어떤 사각형이 되나요?", opts, opts.indexOf("마름모") + 1, { figure: fig });
+    }
+    const s = R.int(3, 12);
+    fig.draw += tx(48, 74, `${s} cm`, 16);
+    return cnt(`한 변이 ${s} cm인 정삼각형 2개를 이어 붙여 마름모를 만들었습니다.\n마름모의 네 변의 길이의 합은 몇 cm인가요?`, 4 * s, "cm", { figure: fig });
+  };
+
+  // ---------- 여러 가지 사각형 ----------
+  const INC = { trap: ["trap"], para: ["para", "trap"], rect: ["rect", "para", "trap"], rhomb: ["rhomb", "para", "trap"], square: ["square", "rect", "rhomb", "para", "trap"] };
+  const WHY = { para: "평행한 변이 한 쌍뿐인 사다리꼴도 있어요.", rhomb: "네 변의 길이가 모두 같지 않을 수 있어요.", rect: "네 각이 모두 직각이 아닐 수 있어요.", square: "네 변의 길이가 모두 같고 네 각이 모두 직각이어야 정사각형이에요." };
+  /** ○○은(는) △△이라고 할 수 있습니다 (OX). opts.with: 꼭 들어갈 사각형 */
+  G["geo.inclusion"] = (R, o) => {
+    const ks = Object.keys(INC), T = [], F = [];
+    ks.forEach(a => ks.forEach(b => { if (a === b || (o.with && a !== o.with && b !== o.with)) return; (INC[a].includes(b) ? T : F).push([a, b]); }));
+    const yes = F.length === 0 || (T.length && R.chance(0.5)), [a, b] = R.pick(yes ? T : F);
+    return { type: "ox", text: `${KNAME2[a]}은(는) ${rLa(KNAME2[b])} 할 수 있습니다.`, answer: yes ? "O" : "X", explain: yes ? `${KNAME2[a]}은(는) ${KNAME2[b]}의 성질을 모두 가지고 있어요.` : WHY[b] };
+  };
+  /** 그림 속 사각형을 부를 수 있는 이름 모두 */
+  G["geo.namesOf"] = R => {
+    const P = makeShape(R, R.pick(["square", "rect", "rhomb", "para", "trap", "rtrap"])), inf = shapeInfo(P), keys = ["trap", "para", "rhomb", "rect", "square"];
+    return { type: "choice", multi: true, text: "이 사각형을 부를 수 있는 이름을 모두 고르세요.", options: keys.map(k => KNAME2[k]), answer: keys.map((k, i) => (inf.kinds.includes(k) ? i + 1 : 0)).filter(Boolean), figure: bigfig(P) };
+  };
+  const PROPS = [
+    ["마주 보는 한 쌍 이상의 변이 서로 평행합니다.", ["trap", "para", "rect", "rhomb", "square"]],
+    ["두 쌍의 마주 보는 변이 서로 평행합니다.", ["para", "rect", "rhomb", "square"]],
+    ["마주 보는 두 변의 길이가 같습니다.", ["para", "rect", "rhomb", "square"]],
+    ["마주 보는 두 각의 크기가 같습니다.", ["para", "rect", "rhomb", "square"]],
+    ["네 변의 길이가 모두 같습니다.", ["rhomb", "square"]],
+    ["네 각이 모두 직각입니다.", ["rect", "square"]],
+    ["이웃한 두 각의 크기의 합이 180°입니다.", ["para", "rect", "rhomb", "square"]],
+    ["마주 보는 꼭짓점끼리 이은 두 선분이 서로 수직으로 만납니다.", ["rhomb", "square"]],
+    ["네 각의 크기의 합이 360°입니다.", ["trap", "para", "rect", "rhomb", "square"]],
+    ["평행한 변이 한 쌍도 없습니다.", []],
+    ["네 각이 모두 둔각입니다.", []],
+  ];
+  G["geo.propsOf"] = (R, o) => {
+    const k = o.kind || R.pick(["trap", "para", "rect", "rhomb", "square"]);
+    for (let t = 0; t < 100; t++) {
+      const list = R.shuffle(PROPS).slice(0, 4), ans = list.map((p, i) => (p[1].includes(k) ? i + 1 : 0)).filter(Boolean);
+      if (!ans.length || ans.length === 4) continue;
+      return { type: "choice", multi: true, text: `${KNAME2[k]}에 대한 설명으로 항상 옳은 것을 모두 고르세요.`, options: list.map(p => p[0]), answer: ans };
+    }
+  };
   /** 문항 틀 → 실제 문항 (같은 씨앗이면 항상 같은 문제) */
   L.instantiate = (t, seed) => {
     if (t && !t.gen && t.shuffle && Array.isArray(t.options)) {      // 고정 문항: 보기 순서만 섞기

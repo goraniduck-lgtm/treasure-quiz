@@ -11,62 +11,17 @@ const QUIZ = {
  },
  "questions": [
   {
-   "type": "ox",
-   "text": "정사각형은 마름모입니다.",
-   "answer": "O"
+   "gen": "geo.inclusion"
   },
   {
-   "type": "ox",
-   "text": "마름모는 모두 정사각형입니다.",
-   "answer": "X",
-   "explain": "네 각이 직각인 마름모만 정사각형이에요."
+   "gen": "geo.inclusion"
   },
   {
-   "type": "ox",
-   "text": "직사각형은 평행사변형입니다.",
-   "answer": "O"
+   "gen": "geo.namesOf",
+   "points": 20
   },
   {
-   "type": "ox",
-   "text": "평행사변형은 모두 직사각형입니다.",
-   "answer": "X"
-  },
-  {
-   "type": "choice",
-   "text": "정사각형을 부를 수 있는 이름을 모두 고르세요.",
-   "answer": [
-    1,
-    2,
-    3,
-    4
-   ],
-   "multi": true,
-   "points": 20,
-   "options": [
-    "사다리꼴",
-    "평행사변형",
-    "마름모",
-    "직사각형"
-   ],
-   "explain": "정사각형은 사다리꼴, 평행사변형, 마름모, 직사각형의 성질을 모두 가지고 있어요.",
-   "shuffle": true
-  },
-  {
-   "type": "choice",
-   "text": "직사각형의 성질을 모두 고르세요.",
-   "answer": [
-    1,
-    2,
-    4
-   ],
-   "multi": true,
-   "options": [
-    "네 각이 모두 직각입니다.",
-    "마주 보는 두 변의 길이가 같습니다.",
-    "네 변의 길이가 항상 모두 같습니다.",
-    "두 쌍의 마주 보는 변이 서로 평행합니다."
-   ],
-   "shuffle": true
+   "gen": "geo.propsOf"
   },
   {
    "gen": "geo.classify",
@@ -97,9 +52,13 @@ const QUIZ = {
    "gen": "geo.squarePerim"
   },
   {
-   "type": "ox",
-   "text": "네 각이 모두 직각이고 네 변의 길이가 모두 같은 사각형은\n정사각형입니다.",
-   "answer": "O"
+   "gen": "geo.namesOf"
+  },
+  {
+   "gen": "geo.propsOf"
+  },
+  {
+   "gen": "geo.inclusion"
   }
  ]
 };

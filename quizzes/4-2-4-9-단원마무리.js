@@ -11,31 +11,72 @@ const QUIZ = {
  },
  "questions": [
   {
-   "type": "short",
-   "text": "직선 가와 직선 나가 서로 수직으로 만날 때,\n직선 나는 직선 가에 대한 [ ]입니다.",
-   "answer": [
-    "수선"
-   ]
+   "gen": "pick",
+   "opts": {
+    "items": [
+     {
+      "type": "short",
+      "text": "두 직선이 만나서 이루는 각이 직각일 때,\n두 직선은 서로 [ ]이라고 합니다.",
+      "answer": [
+       "수직"
+      ]
+     },
+     {
+      "type": "short",
+      "text": "두 직선이 서로 수직일 때,\n한 직선을 다른 직선에 대한 [ ]이라고 합니다.",
+      "answer": [
+       "수선"
+      ]
+     },
+     {
+      "type": "short",
+      "text": "서로 만나지 않는 두 직선을 [ ]하다고 합니다.",
+      "answer": [
+       "평행"
+      ]
+     },
+     {
+      "type": "short",
+      "text": "평행한 두 직선을 [ ]이라고 합니다.",
+      "answer": [
+       "평행선"
+      ]
+     },
+     {
+      "type": "short",
+      "text": "평행한 변이 한 쌍이라도 있는 사각형을\n[ ]이라고 합니다.",
+      "answer": [
+       "사다리꼴"
+      ]
+     },
+     {
+      "type": "short",
+      "text": "마주 보는 두 쌍의 변이 서로 평행한 사각형을\n[ ]이라고 합니다.",
+      "answer": [
+       "평행사변형"
+      ]
+     },
+     {
+      "type": "short",
+      "text": "네 변의 길이가 모두 같은 사각형을 [ ]라고 합니다.",
+      "answer": [
+       "마름모"
+      ]
+     }
+    ]
+   }
   },
   {
-   "type": "number",
-   "text": "직사각형에서 서로 수직인 두 변은 모두 몇 쌍인가요?",
-   "answer": 4,
-   "unit": "쌍",
-   "figure": {
-    "w": 300,
-    "h": 160,
-    "draw": "<polygon points=\"50,30 250,30 250,130 50,130\"/>"
+   "gen": "geo.sidePairs",
+   "opts": {
+    "rel": "perp"
    }
   },
   {
    "gen": "geo.gridDist"
   },
   {
-   "gen": "geo.classify",
-   "opts": {
-    "ask": "para"
-   }
+   "gen": "geo.classify"
   },
   {
    "gen": "geo.adjAngle"
@@ -44,26 +85,10 @@ const QUIZ = {
    "gen": "geo.rhombPerim"
   },
   {
-   "type": "ox",
-   "text": "사다리꼴은 모두 평행사변형입니다.",
-   "answer": "X"
+   "gen": "geo.inclusion"
   },
   {
-   "type": "ox",
-   "text": "정사각형은 직사각형입니다.",
-   "answer": "O"
-  },
-  {
-   "type": "choice",
-   "text": "두 쌍의 마주 보는 변이 평행하고 네 각이 모두 직각이지만\n네 변의 길이가 모두 같지는 않은 사각형은?",
-   "answer": 2,
-   "options": [
-    "정사각형",
-    "직사각형",
-    "마름모",
-    "사다리꼴"
-   ],
-   "shuffle": true
+   "gen": "geo.propsOf"
   },
   {
    "gen": "geo.parSum",
@@ -76,11 +101,10 @@ const QUIZ = {
    "points": 20
   },
   {
-   "type": "short",
-   "text": "마주 보는 두 쌍의 변이 서로 평행한 사각형을\n[ ]이라고 합니다.",
-   "answer": [
-    "평행사변형"
-   ]
+   "gen": "geo.pointPick"
+  },
+  {
+   "gen": "geo.trapCut"
   }
  ]
 };
