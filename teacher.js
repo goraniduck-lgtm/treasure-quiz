@@ -140,10 +140,11 @@
 
     let left = "", ctrl = "";
     if (st.phase === "lobby") {
-      left = `<div class="card wait">${L.CHEST}<h2>${esc(Q.title)}</h2><p>${esc(Q.subtitle || "")}</p>
-        <div class="meta"><span class="chip">문제 ${n}개</span><span class="chip">정답 만점 ${L.maxBase(Q)}점</span><span class="chip">보물 ${L.treasureRange(Q)}</span></div>
+      left = `<div class="card wait"><h2>${esc(Q.title)}</h2>
         <div class="qrbox">${L.qrHTML(studentUrl() + "?room=" + code)}</div>
-        <p>이 QR을 찍으면 방 코드 <b>${esc(code)}</b>가 채워진 화면이 열려요. 이름을 확인하고 들어오면 오른쪽에 나타나요.</p></div>`;
+        <p>이 QR을 찍으면 방 코드 <b>${esc(code)}</b>가 채워진 화면이 열려요. 이름을 확인하고 들어오면 오른쪽에 나타나요.</p>
+        <p class="small">${esc(Q.subtitle || "")}</p>
+        <div class="meta"><span class="chip">문제 ${n}개</span><span class="chip">정답 만점 ${L.maxBase(Q)}점</span><span class="chip">보물 ${L.treasureRange(Q)}</span></div></div>`;
       ctrl = `<button class="go" id="start" ${students.length ? "" : "disabled"}>문제 1 열기</button>`;
     } else if (st.phase === "q") {
       const q = Q.questions[st.q];

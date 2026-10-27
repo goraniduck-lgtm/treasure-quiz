@@ -359,11 +359,12 @@
 
       let left, ctrl;
       if (st.phase === "lobby") {
-        left = `<div class="card wait">${L.CHEST}<h2>${esc(Q.title)}</h2><p>${esc(Q.subtitle || "")}</p>
-          <div class="meta"><span class="chip">학생 스스로 진행</span><span class="chip">제한 시간 ${mins}분</span><span class="chip">문제 ${Q.questions.length}개를 섞어서</span></div>
-          <div class="meta">${effOn.map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div>
+        left = `<div class="card wait"><h2>${esc(Q.title)}</h2>
           <div class="qrbox">${L.qrHTML(studentUrl() + "?room=" + code)}</div>
-          <p>이 QR을 찍으면 방 코드 <b>${esc(code)}</b>가 채워진 화면이 열려요. 이름을 확인하고 들어오면 오른쪽에 나타나요.</p></div>`;
+          <p>이 QR을 찍으면 방 코드 <b>${esc(code)}</b>가 채워진 화면이 열려요. 이름을 확인하고 들어오면 오른쪽에 나타나요.</p>
+          <p class="small">${esc(Q.subtitle || "")}</p>
+          <div class="meta"><span class="chip">학생 스스로 진행</span><span class="chip">제한 시간 ${mins}분</span><span class="chip">문제 ${Q.questions.length}개를 섞어서</span></div>
+          <div class="meta">${effOn.map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div></div>`;
         ctrl = `<button class="go" id="go" ${students.length ? "" : "disabled"}>시작하기 (${mins}분)</button>`;
       } else {
         const perQ = st.phase === "end" ? perQuestion() : "";
