@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const L = (window.LQ = {});
-  L.APP_VERSION = "20261028085812";
+  L.APP_VERSION = "20261028122308";
 
   /** 사이트가 새 버전이면 한 번 새로고침 (오래 열어 둔 태블릿이 예전 프로그램으로 남지 않게) */
   L.checkUpdate = async (canReload) => {

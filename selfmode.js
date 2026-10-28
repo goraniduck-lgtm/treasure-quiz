@@ -111,7 +111,20 @@
         <div class="score">${L.COIN}<span id="myscore">${Math.max(0, sc[me.sid] || 0)}점</span></div></div>
         <p class="small">푼 문제 ${lg.length}개 · 맞힌 문제 ${right}개${st >= 2 ? ` · <b class="combo">${st}연속 정답!</b>` : ""}${((R.shields || {})[me.sid] || 0) > 0 ? ` · <b class="shieldon">방어막 ${(R.shields || {})[me.sid]}개</b>` : ""}</p>`;
     }
-    const wrap = (sc, inner) => `${banner()}<div id="toast" class="toast" hidden></div>${bar(sc)}${inner}`;
+    // 빈 곳에 작게: 1~5등 레인 (선생님이 고른 레이싱/높이 오르기)
+    const rv = L.rankView ? L.rankView({ compact: true, me: me.sid }) : null;
+    function rvMe() {
+      const t = document.getElementById("rvme"); if (!t || !R) return;
+      const sc = L.selfScores(R), mine = sc[me.sid] || 0, ids = Object.keys(R.students || {});
+      const rank = 1 + ids.filter(id => id !== me.sid && (sc[id] || 0) > mine).length;
+      t.textContent = rank > 5 ? `나는 지금 ${rank}등 · ${Math.max(0, mine)}점` : "";
+    }
+    function attachRv() { const slot = document.getElementById("rvslot"); if (slot && rv) { slot.replaceWith(rv.el); rvMe(); } }
+    const wrap = (sc, inner) => {
+      const live = rv && R && R.state && R.state.phase === "run" && running();
+      if (live) queueMicrotask(attachRv);
+      return `${banner()}<div id="toast" class="toast" hidden></div>${bar(sc)}${inner}${live ? `<div class="rvwrap"><div id="rvslot"></div><p class="rv-me" id="rvme"></p></div>` : ""}`;
+    };
 
     function toast(msg) {
       const t = document.getElementById("toast"); if (!t) return;
@@ -313,7 +326,9 @@
 
     const unsub = B.on(base, v => {
       if (!v || !v.state) { leave("선생님이 수업을 끝냈어요.", true); return; }
-      R = v; notify(); render();
+      R = v; notify();
+      if (rv) { rv.setMode(v.view || "race"); rv.update(v); rvMe(); }
+      render();
     });
     const tick = setInterval(() => {
       if (!R) return;
@@ -329,6 +344,9 @@
   // =====================================================================
   L.selfTeacher = ({ app, B, code, Q, banner, studentUrl, onClose }) => {
     let R = null, showNames = true, confirmEnd = false, confirmReset = false;
+    let view = L.store.get("lq-view") || "race";            // board(순위표) | race(레이싱) | climb(높이 오르기)
+    const rv = L.rankView ? L.rankView({ compact: false }) : null;
+    if (!rv) view = "board";
     const base = "rooms/" + code;
     const remain = () => (R.state && R.state.endsAt ? R.state.endsAt - B.serverNow() : 0);
 
@@ -367,11 +385,13 @@
           <div class="meta">${effOn.map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div></div>`;
         ctrl = `<button class="go" id="go" ${students.length ? "" : "disabled"}>시작하기 (${mins}분)</button>`;
       } else {
-        const perQ = st.phase === "end" ? perQuestion() : "";
-        left = `<div class="card"><div class="roster-head"><h2>${st.phase === "end" ? "최종 순위" : "실시간 순위"}</h2>
+        var perQ = st.phase === "end" ? perQuestion() : "";
+        var feedCard = feed ? `<div class="card"><h2 class="ttitle" style="text-align:left;font-size:1.3rem">카드 소식</h2><ul class="feed">${feed}</ul></div>` : "";
+        const seg = rv ? `<div class="viewseg" role="group" aria-label="순위 화면">${[["board", "순위표"], ["race", "레이싱"], ["climb", "높이 오르기"]].map(([k, t]) => `<button data-view="${k}" class="${view === k ? "on" : ""}">${t}</button>`).join("")}</div>` : "";
+        left = `<div class="card" ${view === "board" ? "" : `id="rvcard"`}><div class="roster-head"><h2>${st.phase === "end" ? "최종 순위" : "실시간 순위"}</h2>${seg}
             <label class="toggle"><input type="checkbox" id="names" ${showNames ? "checked" : ""}>이름 보기</label></div>
-          <div class="lead">${board || `<p class="small">아직 기록이 없어요.</p>`}</div>${perQ}</div>
-          ${feed ? `<div class="card"><h2 class="ttitle" style="text-align:left;font-size:1.3rem">카드 소식</h2><ul class="feed">${feed}</ul></div>` : ""}`;
+          ${view === "board" ? `<div class="lead">${board || `<p class="small">아직 기록이 없어요.</p>`}</div>` : `<div id="rvslot"></div>`}<div id="perq">${perQ}</div></div>
+          <div id="feedwrap">${feedCard}</div>`;
         if (st.phase === "run") ctrl = `<button class="go ghost" id="plus">+1분</button>${confirmEnd ? `<button class="go danger" id="stopyes">지금 끝내기</button><button class="go ghost" id="stopno">취소</button>` : `<button class="go ghost" id="stop">지금 끝내기</button>`}`;
         else ctrl = confirmReset
           ? `<span>기록을 지우고 같은 문제로 다시 시작할까요?</span><button class="go" id="resetyes">다시 하기</button><button class="go ghost" id="resetno">취소</button>`
@@ -383,12 +403,25 @@
       const roster = ranked.map(x => `<div class="stu ${x.s.online ? "" : "off"}"><div class="nm"><i class="on"></i><span>${esc(x.s.name)}</span></div>
         <div class="st"><span>${x.solved}문제 · ${x.solved ? Math.round(100 * x.right / x.solved) : 0}%</span><b>${x.score}점</b></div></div>`).join("");
 
-      app.innerHTML = `<div class="t-wrap">${banner()}${top}
-        <div class="t-main"><div style="display:grid;gap:16px;min-width:0">${left}<div class="t-ctrl">${ctrl}</div></div>
-          <div class="card" style="align-content:start"><div class="roster-head"><h2>학생 ${students.length}명</h2></div>
+      const right = `<div class="roster-head"><h2>학생 ${students.length}명</h2></div>
             <p class="small" style="text-align:left">초록 점: 접속 중 · 푼 문제 수 · 정답률 · 점수</p>
-            <div class="roster">${roster || `<p class="small">아직 들어온 학생이 없어요.</p>`}</div></div></div></div>`;
-      bind();
+            <div class="roster">${roster || `<p class="small">아직 들어온 학생이 없어요.</p>`}</div>`;
+      // 애니메이션 화면은 통째로 다시 그리면 움직임이 끊기므로, 바뀐 부분만 고친다
+      const shellKey = [st.phase, view, showNames, banner()].join("|");
+      if (view !== "board" && st.phase !== "lobby" && app._shell === shellKey && document.getElementById("rvcard")) {
+        const set = (id, h) => { const e = document.getElementById(id); if (e && e._h !== h) { e.innerHTML = h; e._h = h; return true; } return false; };
+        set("tTop", top); set("tRight", right); set("perq", perQ); set("feedwrap", feedCard);
+        if (set("tCtrl", ctrl)) bindCtrl();
+        return;
+      }
+      app._shell = shellKey;
+      app.innerHTML = `<div class="t-wrap">${banner()}<div id="tTop">${top}</div>
+        <div class="t-main${view !== "board" && st.phase !== "lobby" ? " wide" : ""}"><div style="display:grid;gap:16px;min-width:0">${left}<div class="t-ctrl" id="tCtrl">${ctrl}</div></div>
+          <div class="card" style="align-content:start" id="tRight">${right}</div></div></div>`;
+      const slot = document.getElementById("rvslot"); if (slot && rv) slot.replaceWith(rv.el);
+      const tc = document.getElementById("tCtrl"); if (tc) tc._h = ctrl;
+      ["tTop", "tRight", "perq", "feedwrap"].forEach(id => { const e = document.getElementById(id); if (e) e._h = e.innerHTML; });
+      bindCtrl(); bindShell();
     }
 
     function perQuestion() {
@@ -398,9 +431,9 @@
       return chips ? `<div><p class="small" style="margin:8px 0 6px">문항별 정답률 (푼 횟수)</p><div class="meta">${chips}</div></div>` : "";
     }
 
-    function bind() {
-      const on = (id, f) => { const el = document.getElementById(id); if (el) el.addEventListener("click", f); };
-      on("go", () => B.set(base + "/state", { phase: "run", startedAt: B.now(), endsAt: B.serverNow() + ((R.settings && R.settings.timeLimit) || 300) * 1000 }));
+    const on = (id, f) => { const el = document.getElementById(id); if (el) el.addEventListener("click", f); };
+    function bindCtrl() {
+      on("go", () => (rv && view !== "board" && B.set(base + "/view", view), B.set(base + "/state", { phase: "run", startedAt: B.now(), endsAt: B.serverNow() + ((R.settings && R.settings.timeLimit) || 300) * 1000 })));
       on("plus", () => B.update(base + "/state", { endsAt: (R.state.endsAt || B.serverNow()) + 60000 }));
       on("stop", () => { confirmEnd = true; render(); });
       on("stopno", () => { confirmEnd = false; render(); });
@@ -411,10 +444,18 @@
       on("end", () => { confirmEnd = true; render(); });
       on("endno", () => { confirmEnd = false; render(); });
       on("endyes", async () => { stop(); await B.remove(base); onClose(); });
-      const nm = document.getElementById("names"); if (nm) nm.addEventListener("change", () => { showNames = nm.checked; render(); });
+    }
+    function bindShell() {
+      const nm = document.getElementById("names"); if (nm) nm.addEventListener("change", () => { showNames = nm.checked; if (rv) rv.setNames(showNames); render(); });
+      document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
+        view = b.dataset.view; L.store.set("lq-view", view);
+        if (view !== "board") { rv.setMode(view); if (R.view !== view) B.set(base + "/view", view); }
+        render();
+      }));
     }
 
-    const unsub = B.on(base, v => { if (!v) { stop(); onClose(); return; } R = v; render(); });
+    if (rv && view !== "board") rv.setMode(view);
+    const unsub = B.on(base, v => { if (!v) { stop(); onClose(); return; } R = v; if (rv) rv.update(v); render(); });
     const tick = setInterval(() => {
       if (!R || !R.state || R.state.phase !== "run") return;
       const t = document.getElementById("ttimer"); if (t) t.textContent = L.fmtTime(remain());
