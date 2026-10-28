@@ -111,20 +111,7 @@
         <div class="score">${L.COIN}<span id="myscore">${Math.max(0, sc[me.sid] || 0)}점</span></div></div>
         <p class="small">푼 문제 ${lg.length}개 · 맞힌 문제 ${right}개${st >= 2 ? ` · <b class="combo">${st}연속 정답!</b>` : ""}${((R.shields || {})[me.sid] || 0) > 0 ? ` · <b class="shieldon">방어막 ${(R.shields || {})[me.sid]}개</b>` : ""}</p>`;
     }
-    // 빈 곳에 작게: 1~5등 레인 (선생님이 고른 레이싱/높이 오르기)
-    const rv = L.rankView ? L.rankView({ compact: true, me: me.sid }) : null;
-    function rvMe() {
-      const t = document.getElementById("rvme"); if (!t || !R) return;
-      const sc = L.selfScores(R), mine = sc[me.sid] || 0, ids = Object.keys(R.students || {});
-      const rank = 1 + ids.filter(id => id !== me.sid && (sc[id] || 0) > mine).length;
-      t.textContent = rank > 5 ? `나는 지금 ${rank}등 · ${Math.max(0, mine)}점` : "";
-    }
-    function attachRv() { const slot = document.getElementById("rvslot"); if (slot && rv) { slot.replaceWith(rv.el); rvMe(); } }
-    const wrap = (sc, inner) => {
-      const live = rv && R && R.state && R.state.phase === "run" && running();
-      if (live) queueMicrotask(attachRv);
-      return `${banner()}<div id="toast" class="toast" hidden></div>${bar(sc)}${inner}${live ? `<div class="rvwrap"><div id="rvslot"></div><p class="rv-me" id="rvme"></p></div>` : ""}`;
-    };
+    const wrap = (sc, inner) => `${banner()}<div id="toast" class="toast" hidden></div>${bar(sc)}${inner}`;
 
     function toast(msg) {
       const t = document.getElementById("toast"); if (!t) return;
@@ -326,9 +313,7 @@
 
     const unsub = B.on(base, v => {
       if (!v || !v.state) { leave("선생님이 수업을 끝냈어요.", true); return; }
-      R = v; notify();
-      if (rv) { rv.setMode(v.view || "race"); rv.update(v); rvMe(); }
-      render();
+      R = v; notify(); render();
     });
     const tick = setInterval(() => {
       if (!R) return;
@@ -347,6 +332,23 @@
     let view = L.store.get("lq-view") || "race";            // board(순위표) | race(레이싱) | climb(높이 오르기)
     const rv = L.rankView ? L.rankView({ compact: false }) : null;
     if (!rv) view = "board";
+    // 전체 화면 틀: 위에 제목·남은 시간·닫기, 아래에 순위 애니메이션 (평소에는 위 줄이 숨겨짐)
+    const fs = document.createElement("div");
+    fs.className = "rvfs";
+    fs.innerHTML = `<div class="rvhud"><span class="ttl">${esc(Q.title)}</span><span class="t-pill big-timer" id="rvtimer"></span><button class="go ghost" id="rvexit">전체 화면 닫기</button></div>`;
+    if (rv) fs.appendChild(rv.el);
+    const isFs = () => document.fullscreenElement === fs || document.webkitFullscreenElement === fs || fs.classList.contains("fakefs");
+    function enterFs() {
+      const req = fs.requestFullscreen || fs.webkitRequestFullscreen;
+      if (req) { try { const p = req.call(fs); if (p && p.catch) p.catch(() => fs.classList.add("fakefs")); } catch (e) { fs.classList.add("fakefs"); } }
+      else fs.classList.add("fakefs");
+    }
+    function exitFs() {
+      fs.classList.remove("fakefs");
+      if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+    fs.querySelector("#rvexit").addEventListener("click", exitFs);
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && fs.classList.contains("fakefs")) exitFs(); });
     const base = "rooms/" + code;
     const remain = () => (R.state && R.state.endsAt ? R.state.endsAt - B.serverNow() : 0);
 
@@ -388,7 +390,7 @@
         var perQ = st.phase === "end" ? perQuestion() : "";
         var feedCard = feed ? `<div class="card"><h2 class="ttitle" style="text-align:left;font-size:1.3rem">카드 소식</h2><ul class="feed">${feed}</ul></div>` : "";
         const seg = rv ? `<div class="viewseg" role="group" aria-label="순위 화면">${[["board", "순위표"], ["race", "레이싱"], ["climb", "높이 오르기"]].map(([k, t]) => `<button data-view="${k}" class="${view === k ? "on" : ""}">${t}</button>`).join("")}</div>` : "";
-        left = `<div class="card" ${view === "board" ? "" : `id="rvcard"`}><div class="roster-head"><h2>${st.phase === "end" ? "최종 순위" : "실시간 순위"}</h2>${seg}
+        left = `<div class="card" ${view === "board" ? "" : `id="rvcard"`}><div class="roster-head"><h2>${st.phase === "end" ? "최종 순위" : "실시간 순위"}</h2>${seg}${view !== "board" ? `<button class="go ghost fsbtn" id="rvfull">전체 화면</button>` : ""}
             <label class="toggle"><input type="checkbox" id="names" ${showNames ? "checked" : ""}>이름 보기</label></div>
           ${view === "board" ? `<div class="lead">${board || `<p class="small">아직 기록이 없어요.</p>`}</div>` : `<div id="rvslot"></div>`}<div id="perq">${perQ}</div></div>
           <div id="feedwrap">${feedCard}</div>`;
@@ -407,20 +409,21 @@
             <p class="small" style="text-align:left">초록 점: 접속 중 · 푼 문제 수 · 정답률 · 점수</p>
             <div class="roster">${roster || `<p class="small">아직 들어온 학생이 없어요.</p>`}</div>`;
       // 애니메이션 화면은 통째로 다시 그리면 움직임이 끊기므로, 바뀐 부분만 고친다
-      const shellKey = [st.phase, view, showNames, banner()].join("|");
+      const t2 = fs.querySelector("#rvtimer"); t2.textContent = st.phase === "run" ? L.fmtTime(remain()) : st.phase === "end" ? "끝" : "";
+      const shellKey = [st.phase, view, showNames].join("|");
       if (view !== "board" && st.phase !== "lobby" && app._shell === shellKey && document.getElementById("rvcard")) {
         const set = (id, h) => { const e = document.getElementById(id); if (e && e._h !== h) { e.innerHTML = h; e._h = h; return true; } return false; };
-        set("tTop", top); set("tRight", right); set("perq", perQ); set("feedwrap", feedCard);
+        set("tBan", banner()); set("tTop", top); set("tRight", right); set("perq", perQ); set("feedwrap", feedCard);
         if (set("tCtrl", ctrl)) bindCtrl();
         return;
       }
       app._shell = shellKey;
-      app.innerHTML = `<div class="t-wrap">${banner()}<div id="tTop">${top}</div>
+      app.innerHTML = `<div class="t-wrap"><div id="tBan">${banner()}</div><div id="tTop">${top}</div>
         <div class="t-main${view !== "board" && st.phase !== "lobby" ? " wide" : ""}"><div style="display:grid;gap:16px;min-width:0">${left}<div class="t-ctrl" id="tCtrl">${ctrl}</div></div>
           <div class="card" style="align-content:start" id="tRight">${right}</div></div></div>`;
-      const slot = document.getElementById("rvslot"); if (slot && rv) slot.replaceWith(rv.el);
+      const slot = document.getElementById("rvslot"); if (slot && rv) slot.replaceWith(fs);
       const tc = document.getElementById("tCtrl"); if (tc) tc._h = ctrl;
-      ["tTop", "tRight", "perq", "feedwrap"].forEach(id => { const e = document.getElementById(id); if (e) e._h = e.innerHTML; });
+      ["tBan", "tTop", "tRight", "perq", "feedwrap"].forEach(id => { const e = document.getElementById(id); if (e) e._h = e.innerHTML; });
       bindCtrl(); bindShell();
     }
 
@@ -446,6 +449,7 @@
       on("endyes", async () => { stop(); await B.remove(base); onClose(); });
     }
     function bindShell() {
+      const fb = document.getElementById("rvfull"); if (fb) fb.addEventListener("click", enterFs);
       const nm = document.getElementById("names"); if (nm) nm.addEventListener("change", () => { showNames = nm.checked; if (rv) rv.setNames(showNames); render(); });
       document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
         view = b.dataset.view; L.store.set("lq-view", view);
@@ -459,9 +463,10 @@
     const tick = setInterval(() => {
       if (!R || !R.state || R.state.phase !== "run") return;
       const t = document.getElementById("ttimer"); if (t) t.textContent = L.fmtTime(remain());
+      const t2 = document.getElementById("rvtimer"); if (t2) t2.textContent = L.fmtTime(remain());
       if (remain() <= 0) B.update(base + "/state", { phase: "end" });   // 시간이 다 되면 끝
     }, 500);
-    function stop() { unsub(); clearInterval(tick); }
+    function stop() { unsub(); clearInterval(tick); if (isFs()) exitFs(); }
     return stop;
   };
 })();
