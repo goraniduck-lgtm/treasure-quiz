@@ -113,7 +113,11 @@
   // 받침에 맞는 조사: 숫자는 읽는 소리(영·일·삼·육·칠·팔은 받침 있음), 한글은 마지막 글자
   const hasB = ch => /[0-9]/.test(ch) ? "013678".includes(ch) : (/[가-힣]/.test(ch) ? (ch.charCodeAt(0) - 0xac00) % 28 !== 0 : false);
   const PAIRS = { "을(를)": ["을", "를"], "은(는)": ["은", "는"], "이(가)": ["이", "가"], "이에요": ["이에요", "예요"], "와(과)": ["과", "와"] };
-  const fixJosa = t => t.replace(/([0-9가-힣])('?)(을\(를\)|은\(는\)|이\(가\)|와\(과\)|이에요)/g, (m, ch, q, p) => ch + q + PAIRS[p][hasB(ch) ? 0 : 1]);
+  // {2 3/5} 같은 분수 표기 뒤에서는 분자(마지막 숫자)의 소리로 고름: '5분의 3은'
+  const fixJosa = t => t.replace(/(\{[^{}]*\}|[0-9가-힣])('?)(을\(를\)|은\(는\)|이\(가\)|와\(과\)|이에요)/g, (m, ch, q, p) => {
+    const last = ch.length > 1 ? (ch.match(/(\d)\/[^/]*\}$/) || ch.match(/(\d)\}$/) || [, "0"])[1] : ch;
+    return ch + q + PAIRS[p][hasB(last) ? 0 : 1];
+  });
   L.fixJosa = fixJosa;
 
   const G = (L.GENS = {});
@@ -815,6 +819,179 @@
       if (!ans.length || ans.length === 4) continue;
       return { type: "choice", multi: true, text: `${KNAME2[k]}에 대한 설명으로 항상 옳은 것을 모두 고르세요.`, options: list.map(p => p[0]), answer: ans };
     }
+  };
+  // =====================================================================
+  // 1단원 분수의 덧셈과 뺄셈 (분모가 같은 분수)
+  // 분수는 '분모가 den인 분자 수(가분수 분자)'로 계산: 2와 3/5 → num 13, den 5
+  // 문제 글의 {2 3/5} 는 화면에서 위아래로 쌓인 분수가 됨
+  // =====================================================================
+  const fm = (num, den) => { const w = Math.floor(num / den), r = num % den; return r ? (w ? `{${w} ${r}/${den}}` : `{${r}/${den}}`) : String(w); };
+  const fimp = (num, den) => `{${num}/${den}}`;
+  const fa = (num, den) => { const w = Math.floor(num / den), r = num % den; return r ? (w ? `${w} ${r}/${den}` : `${r}/${den}`) : String(w); };
+  const frq = (text, num, den, extra) => Object.assign({ type: "frac", text, answer: fa(num, den) }, extra || {});
+  const FR_EXPLAIN = {
+    "+proper": "분모는 그대로 두고 분자끼리 더해요.",
+    "+mixed": "자연수끼리, 분수끼리 더해요. 분수끼리 더한 값이 가분수이면 대분수로 바꿔요.",
+    "-proper": "분모는 그대로 두고 분자끼리 빼요.",
+    "-one": "1을 분모가 같은 가분수로 바꾼 뒤 분자끼리 빼요.",
+    "-whole": "자연수에서 1만큼을 가분수로 바꾼 뒤 빼요.",
+    "-mixed": "자연수끼리, 분수끼리 빼요. 분수끼리 뺄 수 없으면 자연수에서 1을 받아내려 가분수로 바꿔요.",
+  };
+  /** 두 수 만들기. opts: op "+"|"-", kind proper|mixed|one|whole, carry(덧셈 받아올림), borrow(뺄셈 받아내림), dmax */
+  function frPair(R, o) {
+    const op = o.op || "+", kind = o.kind || "proper";
+    for (let t = 0; t < 400; t++) {
+      const n = R.int(o.dmin || 3, o.dmax || (kind === "proper" ? 12 : 9));
+      let A, B;
+      if (kind === "proper") { A = R.int(1, n - 1); B = R.int(1, n - 1); }
+      else if (kind === "mixed") { A = R.int(1, 6) * n + R.int(1, n - 1); B = R.int(1, 5) * n + R.int(1, n - 1); }
+      else if (kind === "one") { A = n; B = R.int(1, n - 1); }
+      else if (kind === "whole") { const W = R.int(2, 7); A = W * n; B = R.chance(0.35) ? R.int(1, n - 1) : R.int(1, W - 1) * n + R.int(1, n - 1); }
+      if (op === "+") {
+        const c = (A % n) + (B % n) >= n;
+        if (o.carry === true && !c) continue;
+        if (o.carry === false && c) continue;
+        return [A, B, n];
+      }
+      if (A === B) continue;
+      if (A < B) { if (kind === "proper" || kind === "mixed") [A, B] = [B, A]; else continue; }
+      if (kind === "mixed") {
+        if (Math.floor(B / n) < 1) continue;
+        const borrow = A % n < B % n;
+        if (o.borrow === true && !borrow) continue;
+        if (o.borrow === false && borrow) continue;
+        if (borrow && Math.floor(A / n) <= Math.floor(B / n)) continue;
+      }
+      return [A, B, n];
+    }
+    return [3, 1, 5];
+  }
+  const frRes = (A, B, op) => (op === "+" ? A + B : A - B);
+  const frExpr = (A, B, n, op) => `${fm(A, n)} ${op === "+" ? "+" : "−"} ${fm(B, n)}`;
+
+  G["fr.calc"] = (R, o) => {
+    const op = o.op || "+", [A, B, n] = frPair(R, o);
+    return frq(`${frExpr(A, B, n, op)}을(를) 계산해 보세요.`, frRes(A, B, op), n, { explain: FR_EXPLAIN[op + (o.kind || "proper")] });
+  };
+  /** 단위분수 세기 */
+  G["fr.unit"] = (R, o) => {
+    const n = R.int(3, 12), mode = o.mode || R.pick(["count", "make"]);
+    if (mode === "whole") { const W = R.int(1, 5); return cnt(`${W}은(는) {1/${n}}이(가) 몇 개인가요?`, W * n, "개"); }
+    if (mode === "mixedcount") { const w = R.int(1, 4), a = R.int(1, n - 1); return cnt(`${fm(w * n + a, n)}은(는) {1/${n}}이(가) 몇 개인가요?`, w * n + a, "개"); }
+    if (mode === "count") { const a = R.int(2, n - 1); return cnt(`${fm(a, n)}은(는) {1/${n}}이(가) 몇 개인가요?`, a, "개"); }
+    const k = R.int(2, 2 * n - 1);
+    return frq(`{1/${n}}이(가) ${k}개인 수를 분수로 나타내어 보세요.`, k, n);
+  };
+  /** 가분수 ↔ 대분수 */
+  G["fr.convert"] = (R, o) => {
+    const n = R.int(2, 9), w = R.int(1, 5), a = R.int(1, n - 1), N = w * n + a, to = o.to || R.pick(["mixed", "improper"]);
+    return to === "mixed"
+      ? frq(`${fimp(N, n)}을(를) 대분수로 나타내어 보세요.`, N, n, { form: "mixed" })
+      : Object.assign(frq(`${fm(N, n)}을(를) 가분수로 나타내어 보세요.`, N, n, { form: "improper" }), { answer: `${N}/${n}` });
+  };
+  /** 그림 보고 계산 */
+  function fbar(n, cells, x0, y0, W) {
+    const cw = W / n; let s = "";
+    for (let i = 0; i < n; i++) {
+      const c = cells[i];
+      s += `<rect x="${f1(x0 + i * cw)}" y="${y0}" width="${f1(cw)}" height="44" style="fill:${c === 1 ? "#FFD36B" : c === 2 ? "#8CC1F0" : "#fff"};stroke:#1D2A44;stroke-width:2.5"/>`;
+      if (c === 3) s += `<rect x="${f1(x0 + i * cw)}" y="${y0}" width="${f1(cw)}" height="44" style="fill:#FFD36B;stroke:#1D2A44;stroke-width:2.5"/>` + ln(x0 + i * cw + 6, y0 + 6, x0 + (i + 1) * cw - 6, y0 + 38, "stroke:#D9482B;stroke-width:3") + ln(x0 + (i + 1) * cw - 6, y0 + 6, x0 + i * cw + 6, y0 + 38, "stroke:#D9482B;stroke-width:3");
+    }
+    return s;
+  }
+  G["fr.pic"] = (R, o) => {
+    const op = o.op || "+", n = R.int(4, 10);
+    if (op === "+") {
+      const a = R.int(1, n - 1), b = R.int(1, n - 1), cells = [];
+      for (let i = 0; i < 2 * n; i++) cells.push(i < a ? 1 : i < a + b ? 2 : 0);
+      const two = a + b > n;
+      let draw = fbar(n, cells.slice(0, n), 20, 20, 360) + (two ? fbar(n, cells.slice(n), 20, 80, 360) : "");
+      return frq(`그림을 보고 계산해 보세요.\n${fm(a, n)} + ${fm(b, n)} = [ ]`, a + b, n, { figure: { w: 400, h: two ? 140 : 84, draw }, explain: `{1/${n}}이(가) ${a}개와 ${b}개이면 모두 ${a + b}개예요.` });
+    }
+    const a = R.int(2, n - 1), b = R.int(1, a - 1), cells = [];
+    for (let i = 0; i < n; i++) cells.push(i < a - b ? 1 : i < a ? 3 : 0);
+    return frq(`그림을 보고 계산해 보세요.\n${fm(a, n)} − ${fm(b, n)} = [ ]`, a - b, n, { figure: { w: 400, h: 84, draw: fbar(n, cells, 20, 20, 360) }, explain: `{1/${n}}이(가) ${a}개에서 ${b}개를 빼면 ${a - b}개예요.` });
+  };
+  /** 문장제 */
+  const FR_ADD = [
+    ["예솔이는 반죽을 만드는 데 물 X컵을 사용했고, 나중에 Y컵을 더 사용했습니다.\n사용한 물은 모두 몇 컵인가요?", "컵"],
+    ["빨간 리본 X m와 파란 리본 Y m가 있습니다.\n리본은 모두 몇 m인가요?", "m"],
+    ["집에서 문구점까지는 X km, 문구점에서 학교까지는 Y km입니다.\n집에서 문구점을 지나 학교까지는 몇 km인가요?", "km"],
+    ["주스를 어제 X L, 오늘 Y L 마셨습니다.\n이틀 동안 마신 주스는 모두 몇 L인가요?", "L"],
+    ["감자를 X kg, 고구마를 Y kg 캤습니다.\n캔 감자와 고구마는 모두 몇 kg인가요?", "kg"],
+    ["오전에 X시간, 오후에 Y시간 동안 책을 읽었습니다.\n책을 읽은 시간은 모두 몇 시간인가요?", "시간"],
+  ];
+  const FR_SUB = [
+    ["리본 X m 중에서 Y m를 사용했습니다.\n남은 리본은 몇 m인가요?", "m"],
+    ["우유가 X L 있었는데 Y L를 마셨습니다.\n남은 우유는 몇 L인가요?", "L"],
+    ["노란 끈은 X m, 초록 끈은 Y m입니다.\n노란 끈은 초록 끈보다 몇 m 더 긴가요?", "m"],
+    ["밀가루 X kg 중에서 빵을 만드는 데 Y kg를 사용했습니다.\n남은 밀가루는 몇 kg인가요?", "kg"],
+    ["학교까지의 거리는 X km입니다. 지금까지 Y km를 걸었다면\n남은 거리는 몇 km인가요?", "km"],
+    ["물통에 물이 X L 들어 있었습니다. 화분에 Y L를 주었다면\n물통에 남은 물은 몇 L인가요?", "L"],
+  ];
+  G["fr.word"] = (R, o) => {
+    const op = o.op || "+", [A, B, n] = frPair(R, o), [t, u] = R.pick(op === "+" ? FR_ADD : FR_SUB);
+    return frq(t.replace("X", fm(A, n)).replace("Y", fm(B, n)), frRes(A, B, op), n, { unit: u, explain: `식: ${frExpr(A, B, n, op)} = ${fm(frRes(A, B, op), n)}` });
+  };
+  /** □ 구하기 */
+  G["fr.blank"] = (R, o) => {
+    const op = o.op || "+", [A, B, n] = frPair(R, o), C = frRes(A, B, op);
+    if (op === "+") return R.chance(0.5)
+      ? frq(`□ 안에 알맞은 수를 구해 보세요.\n□ + ${fm(B, n)} = ${fm(C, n)}`, A, n, { explain: `□ = ${fm(C, n)} − ${fm(B, n)}` })
+      : frq(`□ 안에 알맞은 수를 구해 보세요.\n${fm(A, n)} + □ = ${fm(C, n)}`, B, n, { explain: `□ = ${fm(C, n)} − ${fm(A, n)}` });
+    return R.chance(0.5)
+      ? frq(`□ 안에 알맞은 수를 구해 보세요.\n${fm(A, n)} − □ = ${fm(C, n)}`, B, n, { explain: `□ = ${fm(A, n)} − ${fm(C, n)}` })
+      : frq(`□ 안에 알맞은 수를 구해 보세요.\n□ − ${fm(B, n)} = ${fm(C, n)}`, A, n, { explain: `□ = ${fm(C, n)} + ${fm(B, n)}` });
+  };
+  /** 계산이 맞았는지 OX (자주 하는 실수) */
+  G["fr.mistake"] = (R, o) => {
+    const kind = o.kind || "add", good = R.chance(0.5);
+    let A, B, n, op, wrong, why;
+    if (kind === "add") { [A, B, n] = frPair(R, { op: "+", kind: "proper" }); op = "+"; wrong = `{${A + B}/${2 * n}}`; why = "분모끼리는 더하지 않아요. 분모는 그대로 두고 분자끼리 더해요."; }
+    else if (kind === "addMixed") { [A, B, n] = frPair(R, { op: "+", kind: "mixed", carry: true }); op = "+"; const r = A + B; wrong = fm(r - n, n); why = "분수끼리 더한 값이 1보다 크면 자연수 부분에 1을 더해야 해요."; }
+    else if (kind === "borrow") { [A, B, n] = frPair(R, { op: "-", kind: "mixed", borrow: true }); op = "-"; const w = Math.floor(A / n) - Math.floor(B / n), r = (B % n) - (A % n); wrong = w ? `{${w} ${r}/${n}}` : `{${r}/${n}}`; why = "분자끼리 뺄 수 없을 때는 큰 분자에서 작은 분자를 빼면 안 돼요. 자연수에서 1을 받아내려 계산해요."; }
+    else { [A, B, n] = frPair(R, { op: "-", kind: "whole" }); op = "-"; const w = Math.floor(A / n) - Math.floor(B / n), r = B % n; wrong = `{${w} ${r}/${n}}`; why = "자연수에서 1을 가분수로 바꾼 뒤 빼야 해요."; }
+    const right = fm(frRes(A, B, op), n);
+    if (wrong.replace(/[{}]/g, "") === right.replace(/[{}]/g, "")) return G["fr.mistake"](R, o);
+    return { type: "ox", text: `계산이 맞으면 O, 틀리면 X를 고르세요.\n${frExpr(A, B, n, op)} = ${good ? right : wrong}`, answer: good ? "O" : "X", explain: good ? "바르게 계산했어요." : `${why} 바른 답은 ${right}예요.` };
+  };
+  /** 계산 결과가 가장 큰(작은) 식 */
+  G["fr.best"] = (R, o) => {
+    const op = o.op || "+", big = R.chance(0.5), n = R.int(4, 9);
+    for (let t = 0; t < 100; t++) {
+      const ps = [0, 1, 2].map(() => { const p = frPair(R, Object.assign({}, o, { dmin: n, dmax: n })); return p; });
+      const rs = ps.map(([A, B]) => frRes(A, B, op)), tgt = big ? Math.max(...rs) : Math.min(...rs);
+      if (rs.filter(x => x === tgt).length !== 1) continue;
+      const opts = ps.map(([A, B]) => frExpr(A, B, n, op));
+      if (new Set(opts).size < 3) continue;
+      return choice(`계산 결과가 가장 ${big ? "큰" : "작은"} 것을 고르세요.`, opts, rs.indexOf(tgt) + 1, { explain: ps.map(([A, B], i) => `${opts[i]} = ${fm(rs[i], n)}`).join(", ") });
+    }
+    return G["fr.calc"](R, o);
+  };
+  /** 계산 결과와 분수 크기 비교 */
+  G["fr.cmp"] = (R, o) => {
+    const op = o.op || "+", [A, B, n] = frPair(R, o), C = frRes(A, B, op);
+    const Y = R.chance(0.25) ? C : Math.max(1, C + R.pick([-2, -1, 1, 2]));
+    return choice(`계산 결과를 비교하여 ○ 안에 알맞은 것을 고르세요.\n${frExpr(A, B, n, op)} ○ ${fm(Y, n)}`, CMP, C > Y ? 1 : C < Y ? 2 : 3, { explain: `${frExpr(A, B, n, op)} = ${fm(C, n)}` });
+  };
+  G["fr.sum3"] = R => {
+    const n = R.int(5, 12), xs = [0, 1, 2].map(() => R.int(1, n - 1));
+    return frq(`${xs.map(x => fm(x, n)).join(" + ")}을(를) 계산해 보세요.`, xs.reduce((a, b) => a + b, 0), n);
+  };
+  /** 가장 큰 수와 가장 작은 수의 차 */
+  G["fr.diffext"] = R => {
+    const n = R.int(3, 9), s = new Set();
+    while (s.size < 3) s.add(R.int(1, 5) * n + R.int(1, n - 1));
+    const v = [...s];
+    return frq(`${v.map(x => fm(x, n)).join(", ")} 중에서\n가장 큰 수와 가장 작은 수의 차를 구해 보세요.`, Math.max(...v) - Math.min(...v), n);
+  };
+  /** 수 카드로 만든 대분수의 합·차 */
+  G["fr.cards"] = (R, o) => {
+    const n = R.int(5, 9), ds = R.distinct(3, 1, n - 1).sort((a, b) => a - b), big = R.chance(0.5);
+    // 분모가 n이고 수 카드 3장 중 2장으로 만든 대분수(자연수·분자)
+    const pairs = []; ds.forEach(a => ds.forEach(b => { if (a !== b) pairs.push(a * n + b); }));
+    const target = big ? Math.max(...pairs) : Math.min(...pairs);
+    return frq(`수 카드 ${R.shuffle(ds).join(", ")} 중 2장을 골라 분모가 ${n}인 대분수를 만들려고 합니다.\n만들 수 있는 가장 ${big ? "큰" : "작은"} 대분수에 {1 1/${n}}을(를) 더하면 얼마인가요?`, target + n + 1, n, { explain: `가장 ${big ? "큰" : "작은"} 대분수는 ${fm(target, n)}이에요.` });
   };
   /** 문항 틀 → 실제 문항 (같은 씨앗이면 항상 같은 문제) */
   L.instantiate = (t, seed) => {

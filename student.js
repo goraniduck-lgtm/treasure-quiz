@@ -127,7 +127,7 @@
       : `<span class="lastres no">아쉬워요, 0점</span>`;
     const q = Q.questions[state.q];
     let ans = "";
-    if (!r.correct && Q.set.showAnswer) ans = `<p>정답은 <b>${esc(L.showAns(q))}</b>${q.explain ? `<br>${L.fmt(q.explain)}` : ""}</p>`;
+    if (!r.correct && Q.set.showAnswer) ans = `<p>정답은 <b>${L.ansHTML(q)}</b>${q.explain ? `<br>${L.fmt(q.explain)}` : ""}</p>`;
     viewWait("다음 문제를 기다려요", `문제 ${state.q + 1} 끝!`, res + ans);
   }
 

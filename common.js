@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const L = (window.LQ = {});
-  L.APP_VERSION = "20261028122308";
+  L.APP_VERSION = "20261028124329";
 
   /** 사이트가 새 버전이면 한 번 새로고침 (오래 열어 둔 태블릿이 예전 프로그램으로 남지 않게) */
   L.checkUpdate = async (canReload) => {
@@ -41,8 +41,21 @@
 
   // ---------- helpers ----------
   L.esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  L.fmt = t => String(t || "").replace(/\[\s*\]|\[ ?\? ?\]/g, '<span class="blank">?</span>').replace(/\n/g, "<br>");
-  L.plain = t => String(t || "").replace(/\[\s*\]/g, "□").replace(/\n/g, " ").replace(/<[^>]+>/g, "");
+  /** 분수 표기: 문제 글에 {3/5} 또는 {2 3/5} 라고 쓰면 위아래로 쌓인 분수로 보임 ({□/5}, {2 □/5} 도 가능) */
+  const FRAC_RE = /\{(?:(\d+|□)\s+)?(\d+|□)\/(\d+|□)\}/g;
+  const fracHTML = (w, n, d) => `<span class="fx">${w ? `<span class="fw">${w}</span>` : ""}<span class="fr"><span class="fn">${n}</span><span class="fd">${d}</span></span></span>`;
+  L.fmt = t => String(t || "").replace(FRAC_RE, (m, w, n, d) => fracHTML(w, n, d)).replace(/\[\s*\]|\[ ?\? ?\]/g, '<span class="blank">?</span>').replace(/\n/g, "<br>");
+  L.plain = t => String(t || "").replace(FRAC_RE, (m, w, n, d) => (w ? w + "과 " : "") + n + "/" + d).replace(/\[\s*\]/g, "□").replace(/\n/g, " ").replace(/<[^>]+>/g, "");
+  /** 분수 답 읽기: "2 3/5", "3/5", "2", "2|3|5"(입력 칸) → {w,n,d} */
+  L.fracParse = s => {
+    s = String(s == null ? "" : s).trim();
+    let w = 0, n = 0, d = 1;
+    if (s.includes("|")) { const p = s.split("|"); w = Number(p[0] || 0); n = Number(p[1] || 0); d = p[2] === "" || p[2] == null ? (n ? 0 : 1) : Number(p[2]); }
+    else { const m = s.match(/^(?:(\d+)\s+)?(\d+)\/(\d+)$/); if (m) { w = Number(m[1] || 0); n = Number(m[2]); d = Number(m[3]); } else if (/^\d+$/.test(s)) w = Number(s); else return null; }
+    if (![w, n, d].every(Number.isFinite) || d <= 0) return null;
+    return { w, n, d };
+  };
+  const fracText = f => (f.n ? (f.w ? f.w + " " : "") + f.n + "/" + f.d : String(f.w));
   L.norm = s => String(s).normalize("NFC").replace(/[\s.,!?~·'"()（）]/g, "").toLowerCase();
   L.rid = (n = 10) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join("");
   L.store = {
@@ -59,7 +72,7 @@
   // ---------- quiz ----------
   const DEFAULTS = { points: 10, cards: 4, treasures: 2, showAnswer: true };
   L.CIRCLED = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
-  L.TYPE_NAME = { ox: "OX 퀴즈", choice: "객관식", short: "단답형", number: "단답형" };
+  L.TYPE_NAME = { ox: "OX 퀴즈", choice: "객관식", short: "단답형", number: "단답형", frac: "분수로 답하기" };
   L.CARD_COLORS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)", "var(--c6)"];
 
   L.loadQuiz = async file => {
@@ -105,6 +118,12 @@
       return a === g;
     }
     if (q.type === "choice" || q.type === "number") return L.answersOf(q).map(Number).includes(Number(given));
+    if (q.type === "frac") {          // 크기가 같으면 정답 (가분수·대분수 모두). form: "mixed"|"improper" 이면 그 꼴로만
+      const g = L.fracParse(given); if (!g) return false;
+      if (q.form === "improper" && g.w) return false;
+      if (q.form === "mixed" && (g.n >= g.d || (!g.w && g.n))) return false;
+      return L.answersOf(q).some(a => { const f = L.fracParse(a); return f && (f.w * f.d + f.n) * g.d === (g.w * g.d + g.n) * f.d; });
+    }
     return L.answersOf(q).map(L.norm).includes(L.norm(given));
   };
   L.optLabel = (q, i) => { const o = q.options[i - 1]; return (o && typeof o === "object" && o.label) || L.CIRCLED[i - 1] || String(i); };
@@ -114,7 +133,13 @@
     if (q.type === "ox") return v;
     if (q.type === "choice") { const o = q.options[v - 1]; const t = typeof o === "string" ? o : (o && o.text) || ""; return L.optLabel(q, v) + (t ? " " + t : ""); }
     if (q.type === "number") return v + (q.unit || "");
+    if (q.type === "frac") { const f = L.fracParse(v); return (f ? fracText(f) : v) + (q.unit || ""); }
     return v;
+  };
+  /** 정답을 화면용 HTML로 (분수는 위아래로) */
+  L.ansHTML = (q, v) => {
+    if (q.type === "frac") { const f = L.fracParse(v == null ? L.answersOf(q)[0] : v); if (f) return (f.n ? fracHTML(f.w || "", f.n, f.d) : f.w) + L.esc(q.unit || ""); }
+    return L.esc(L.showAns(q, v));
   };
 
   // ---------- figures ----------
@@ -160,6 +185,15 @@
       return `<div class="typed"><div class="numdisp ${d === "" ? "empty" : ""}" id="nd">${d === "" ? "?" : L.esc(d)}</div>${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>
         <div class="pad">${keys.map(k => `<button data-k="${k}">${k}</button>`).join("")}<button class="dotk" data-k="." aria-label="소수점">.</button><button class="del" data-k="del" style="grid-column: span 4">지우기</button></div>`;
     }
+    if (q.type === "frac") {
+      const f = d.includes("|") ? d.split("|") : (() => { const x = L.fracParse(d); return x ? [x.w || "", x.n || "", x.n ? x.d : ""] : ["", "", ""]; })();
+      const box = (k, v, lab) => `<button class="fbox ${k}${v === "" || v == null ? " empty" : ""}" data-f="${k}" aria-label="${lab}" ${opts.preview ? "disabled" : ""}>${v === "" || v == null ? "" : L.esc(String(v))}</button>`;
+      const ui = `<div class="typed"><div class="fracin">${box("w", f[0], "자연수")}<span class="frin">${box("n", f[1], "분자")}<i></i>${box("d", f[2], "분모")}</span></div>${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>`;
+      if (opts.preview) return ui;
+      const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+      return ui + `<p class="hint">칸을 눌러 고른 뒤 숫자를 넣어요. 대분수가 아니면 왼쪽 칸은 비워 두세요.</p>
+        <div class="pad">${keys.map(k => `<button data-k="${k}">${k}</button>`).join("")}<button class="del" data-k="del" style="grid-column: span 5">지우기</button></div>`;
+    }
     if (opts.preview) return `<div class="typed"><input disabled placeholder="답을 적어요">${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>`;
     return `<div class="typed"><input id="sa" autocomplete="off" autocapitalize="off" spellcheck="false" value="${L.esc(d)}" placeholder="답을 적어요">${q.unit ? `<span class="unit">${L.esc(q.unit)}</span>` : ""}</div>${q.hint ? `<p class="hint">${L.esc(q.hint)}</p>` : ""}`;
   };
@@ -185,6 +219,21 @@
         else if (v.length < 7) v = (v === "0" ? "" : v) + k;
         nd.textContent = v === "" ? "?" : v; nd.classList.toggle("empty", v === ""); set(v);
       }));
+    } else if (q.type === "frac") {
+      const st = { w: "", n: "", d: "" }, cur0 = String(get() || "");
+      if (cur0.includes("|")) [st.w, st.n, st.d] = cur0.split("|");
+      let act = "n";
+      const boxes = area.querySelectorAll(".fbox");
+      const paint = () => boxes.forEach(b => { const k = b.dataset.f; b.textContent = st[k]; b.classList.toggle("empty", st[k] === ""); b.classList.toggle("act", k === act); });
+      const sync = () => { const ok = (st.n !== "" && st.d !== "" && Number(st.d) > 0) || (st.w !== "" && st.n === "" && st.d === ""); set(ok ? [st.w, st.n, st.d].join("|") : ""); };
+      boxes.forEach(b => b.addEventListener("click", () => { act = b.dataset.f; paint(); }));
+      area.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => {
+        const k = b.dataset.k;
+        if (k === "del") { if (st[act] === "" && act === "d") act = "n"; else if (st[act] === "" && act === "n" ) act = "w"; st[act] = st[act].slice(0, -1); }
+        else if (st[act].length < 3) st[act] = (st[act] === "0" ? "" : st[act]) + k;
+        paint(); sync();
+      }));
+      paint();
     } else {
       const sa = area.querySelector("#sa");
       sa.addEventListener("input", () => set(sa.value.trim() === "" ? "" : sa.value));

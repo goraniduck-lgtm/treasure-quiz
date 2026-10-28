@@ -210,7 +210,7 @@
       const q = qFor(showFb.qi, showFb.count);
       app.innerHTML = wrap(sc, `<div class="card">
         <div class="fb no"><div class="big">아쉬워요!</div>
-          ${R.settings && R.settings.showAnswer === false ? "" : `<div class="sub">정답은 <b>${esc(L.showAns(q))}</b></div>`}
+          ${R.settings && R.settings.showAnswer === false ? "" : `<div class="sub">정답은 <b>${L.ansHTML(q)}</b></div>`}
           ${q.explain ? `<div class="sub">${L.fmt(q.explain)}</div>` : ""}</div>
         <button class="go" id="nx">다음 문제</button></div>`);
       document.getElementById("nx").addEventListener("click", () => { showFb = null; render(); });

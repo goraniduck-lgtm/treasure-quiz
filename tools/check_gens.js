@@ -42,6 +42,15 @@ for (const f of files) {
         if (cm) { const x = milli(cm[1]), y = milli(cm[2]); if ((x > y ? 1 : x < y ? 2 : 3) !== q.answer) { console.log("WRONG CMP", where); bad++; break; } }
       }
       if (q.type === "short" && !(Array.isArray(q.answer) && q.answer.length)) { console.log("BAD SHORT", where); bad++; break; }
+      if (q.type === "frac") {
+        const f = L.fracParse(q.answer); if (!f) { console.log("BAD FRAC", where, q.answer); bad++; break; }
+        const tok = x => { const m = x.match(/^\{(?:(\d+) )?(\d+)\/(\d+)\}$/); return m ? [Number(m[1] || 0) * Number(m[3]) + Number(m[2]), Number(m[3])] : /^\d+$/.test(x) ? [Number(x), 1] : null; };
+        const m = q.text.match(/^(\S+) ([+−]) (\S+?)[을를] 계산/);
+        if (m) { const A = tok(m[1]), B = tok(m[3]); if (!A || !B) { console.log("PARSE", where, q.text); bad++; break; }
+          const den = A[1] * B[1], num = m[2] === "+" ? A[0] * B[1] + B[0] * A[1] : A[0] * B[1] - B[0] * A[1];
+          if (num * f.d !== (f.w * f.d + f.n) * den || num < 0) { console.log("WRONG FRAC", where, q.text, q.answer); bad++; break; } }
+        if (!L.isCorrect(q, q.answer) || !L.isCorrect(q, [f.w || "", f.n || "", f.n ? f.d : ""].join("|"))) { console.log("SELF-CHECK", where, q.answer); bad++; break; }
+      }
     }
     if (seen.size < 15) console.log(`  적은 변형: ${f} #${i + 1} ${t.gen} → ${seen.size}가지`);
   });

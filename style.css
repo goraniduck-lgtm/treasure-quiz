@@ -388,3 +388,18 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outl
 .t-main.wide .rv { max-width: min(100%, calc((100vh - 390px) * 1.78)); margin: 0 auto; }
 .rv-mini .runner .rvtag { font-size: 2.2cqw; }
 .rv-mini .runner .cb { display: none !important; }
+/* 분수 */
+.fx { display: inline-flex; align-items: center; gap: .12em; vertical-align: middle; margin: 0 .08em; }
+.fx .fw { font-size: 1.05em; }
+.fr { display: inline-flex; flex-direction: column; align-items: center; font-size: .82em; line-height: 1.05; }
+.fr .fn { border-bottom: .09em solid currentColor; padding: 0 .18em .04em; }
+.fr .fd { padding: .04em .18em 0; }
+.tag.t-frac { background: var(--c5); }
+.fracin { display: inline-flex; align-items: center; gap: 10px; }
+.frin { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
+.frin i { display: block; width: 100%; height: 4px; background: var(--ink); border-radius: 2px; }
+.fbox { font-family: var(--display); font-size: 2.2rem; min-width: 76px; height: 64px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; color: var(--ink); font-variant-numeric: tabular-nums; padding: 0 10px; }
+.fbox.w { height: 84px; min-width: 70px; }
+.fbox.empty { background: #F3F7FC; border-style: dashed; }
+.fbox.act { outline: 4px solid var(--gold); outline-offset: 2px; background: #FFF8DF; }
+.fbox:disabled { opacity: 1; }

@@ -149,8 +149,8 @@
     } else if (st.phase === "q") {
       const q = Q.questions[st.q];
       const right = students.filter(s => qa[s.id] && qa[s.id].correct).length;
-      left = `<div class="card">${L.questionHead(Q, q, st.q + 1)}<div>${L.answerArea(q, showAns && q.type !== "short" && q.type !== "number" ? String(L.answersOf(q)[0]) : "", { preview: true })}</div>
-        ${showAns ? `<div class="t-ans">정답: ${esc(L.showAns(q))} · 맞힌 학생 ${right}명 / 제출 ${submitted}명</div>${q.explain ? `<p class="small">${L.fmt(q.explain)}</p>` : ""}` : ""}
+      left = `<div class="card">${L.questionHead(Q, q, st.q + 1)}<div>${L.answerArea(q, showAns && q.type !== "short" && q.type !== "number" && q.type !== "frac" ? String(L.answersOf(q)[0]) : "", { preview: true })}</div>
+        ${showAns ? `<div class="t-ans">정답: ${L.ansHTML(q)} · 맞힌 학생 ${right}명 / 제출 ${submitted}명</div>${q.explain ? `<p class="small">${L.fmt(q.explain)}</p>` : ""}` : ""}
         <div class="meter" aria-label="제출 비율"><i style="width:${(online || students.length) ? Math.round(100 * submitted / (online || students.length)) : 0}%"></i></div>
         ${boardPreview(st.q)}</div>`;
       ctrl = `<button class="go ghost" id="prev">${st.q === 0 ? "처음 화면" : "◀ 이전 문제"}</button>
